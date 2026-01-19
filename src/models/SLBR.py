@@ -15,7 +15,9 @@ from src.utils.parallel import DataParallelModel, DataParallelCriterion
 from src.utils.losses import VGGLoss, l1_relative,is_dic
 from src.utils.imutils import im_to_numpy
 import skimage.io
-from skimage.measure import compare_psnr,compare_ssim
+# from skimage.measure import compare_psnr,compare_ssim
+from skimage.metrics import peak_signal_noise_ratio as compare_psnr
+from skimage.metrics import structural_similarity as compare_ssim
 import torchvision
 import pytorch_iou
 import pytorch_ssim
