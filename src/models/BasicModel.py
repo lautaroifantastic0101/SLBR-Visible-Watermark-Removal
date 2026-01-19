@@ -34,6 +34,7 @@ class BasicModel(object):
         
         # create model
         print("==> creating model ")
+        # 加载net网络 SLBR(nn.Module)  
         self.model = nets.__dict__[self.args.nets](args=args)
         print("==> creating model [Finish]")
        

@@ -104,7 +104,7 @@ def main(args):
             imoutput = imoutput[0]  
             immask = immask_all[0]
 
-            imfinal =imoutput*immask + model.norm(inputs)*(1-immask)
+            imfinal =imoutput*immask + inputs*(1-immask)
             save_output(
                 inputs = {'I':inputs},
                 preds = {'bg':imfinal, 'mask':immask},

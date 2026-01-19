@@ -17,6 +17,10 @@ venv/
 .idea/
 .vscode/
 
+
+*.pth.tar
+.env
+
 # Build artifacts
 build/
 dist/
