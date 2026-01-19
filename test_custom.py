@@ -50,7 +50,7 @@ def preprocess(file_path, img_size=512):
     img_J = cv2.imread(file_path)
     assert img_J is not None, "NoneType"
     h,w,_ = img_J.shape
-    img_J = cv2.cvtColor(img_J, cv2.COLOR_BGR2RGB).astype(np.float)/255.
+    img_J = cv2.cvtColor(img_J, cv2.COLOR_BGR2RGB).astype(np.float64)/255.
     img_J = torch.from_numpy(img_J.transpose(2,0,1)[np.newaxis,...]) #[1,C,H,W]
     img_J = F.interpolate(img_J, size=(img_size, img_size), mode='bilinear')
     
@@ -60,12 +60,15 @@ def preprocess(file_path, img_size=512):
 def test_dataloder(img_path, crop_size):
     loaders = []
     save_fns = []
+    print('img_path', img_path)
 
     for root, dirs, fns in os.walk(img_path):
+        # print()
         for dir in dirs:
             path = os.path.join(root, dir)
             fn_list = os.listdir(path)
             for fn in fn_list:
+                print(fn)
                 if fn.startswith('.'): continue
                 if not (fn.endswith('.jpg') or fn.endswith('jpeg') or fn.endswith('png') ): continue
                 fn = os.path.join(path, fn)
@@ -91,6 +94,8 @@ def main(args):
     with torch.no_grad():
         for i, batches in enumerate(zip(doc_loader, fns)):
             inputs, fn = batches[0], batches[1]
+            print("fn files", fn)
+            
             inputs = inputs.to(model.device).float()
             outputs = model.model(inputs)
             imoutput,immask_all,imwatermark = outputs
@@ -114,4 +119,6 @@ def main(args):
 if __name__ == '__main__':
     parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
     main(parser.parse_args())
-   
+    # doc_loader,fns = test_dataloder('/Users/wushan/models/pix2pix/wm-nowm/valid/watermark', 256)
+    # for i, batches in enumerate(zip(doc_loader, fns)):
+    #     print(batches[1])
