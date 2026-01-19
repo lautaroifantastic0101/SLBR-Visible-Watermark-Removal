@@ -10,7 +10,7 @@ import cv2
 #import torchvision.transforms as transforms
 from abc import ABC, abstractmethod
 from albumentations import HorizontalFlip, RandomResizedCrop, Compose, DualTransform
-import albumentations.augmentations.transforms as transforms
+import albumentations as transforms
 
 class BaseDataset(data.Dataset, ABC):
     """This class is an abstract base class (ABC) for datasets.
