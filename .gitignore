@@ -1,0 +1,44 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.so
+.mypy_cache/
+.pytest_cache/
+.cache/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# Project settings / OS cruft
+.DS_Store
+.idea/
+.vscode/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs / profiles / miscellaneous
+*.log
+*.out
+*.pid
+*.prof
+nohup.out
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Training outputs
+runs/
+outputs/
+checkpoints/
+experiments/
+weights/
+*.pth
+*.pt
+*.ckpt
