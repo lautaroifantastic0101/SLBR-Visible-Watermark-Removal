@@ -50,9 +50,10 @@ def preprocess(file_path, img_size=512):
     img_J = cv2.imread(file_path)
     assert img_J is not None, "NoneType"
     h,w,_ = img_J.shape
-    img_J = cv2.cvtColor(img_J, cv2.COLOR_BGR2RGB).astype(np.float64)/255.
+    img_J = cv2.cvtColor(img_J, cv2.COLOR_BGR2RGB).astype(np.float16)/255.
     img_J = torch.from_numpy(img_J.transpose(2,0,1)[np.newaxis,...]) #[1,C,H,W]
     img_J = F.interpolate(img_J, size=(img_size, img_size), mode='bilinear')
+    
     
     return img_J
 
