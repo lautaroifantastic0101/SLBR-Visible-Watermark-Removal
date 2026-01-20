@@ -34,7 +34,9 @@ def save_output(inputs, preds, save_dir, img_fn, extra_infos=None,  verbose=Fals
     bg_pred,mask_preds = preds['bg'], preds['mask']
     bg_pred = cv2.cvtColor(tensor2np(bg_pred)[0], cv2.COLOR_RGB2BGR)
     mask_pred = tensor2np(mask_preds, isMask=True)[0]
-    outs = [image, bg_pred,  mask_pred]
+    # outs = [image, bg_pred,  mask_pred]
+    # 只是输出bg_pred图片
+    outs = [bg_pred]
     outimg = np.concatenate(outs, axis=1)
 	
     if verbose==True:
