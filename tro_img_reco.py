@@ -223,6 +223,7 @@ def main():
         "resume": slbr_model_path,
         "test_dir": download_dir,
         'sim_metric': 'cos',
+        'project_mode':'simple',
     })
     slbr_custom_args = Namespace(**slbr_custom_args)
     slbr_predict_custom(slbr_custom_args)
