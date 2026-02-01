@@ -144,6 +144,10 @@ def main():
     parser.add_argument("--slbr_model", required=True, help="去水印 PyTorch 模型路径（如 model_best.pth.tar）")
     parser.add_argument("--yolo_model", required=True, help="YOLO 图片分类模型路径（如 yolov8n-cls.pt）")
     parser.add_argument("--skip_download", action="store_true", help="已下载则跳过下载步骤")
+    # 通过外部输入读取 r2_account_id, r2_access_key_id, r2_secret_access_key
+    parser.add_argument("--r2_account_id", required=False, help="Cloudflare R2 ACCOUNT_ID，可以通过环境变量传递")
+    parser.add_argument("--r2_access_key_id", required=False, help="Cloudflare R2 ACCESS_KEY_ID，可以通过环境变量传递")
+    parser.add_argument("--r2_secret_access_key", required=False, help="Cloudflare R2 SECRET_ACCESS_KEY，可以通过环境变量传递")
     args_cli = parser.parse_args()
 
     csv_path = os.path.abspath(args_cli.csv)
@@ -152,17 +156,12 @@ def main():
     slbr_model_path = os.path.abspath(args_cli.slbr_model)
     yolo_model_path = os.path.abspath(args_cli.yolo_model)
 
-    if is_colab():
-        print("当前环境是：Google Colab")
-        from google.colab import userdata
-        r2_account_id = userdata.get('R2_ACCOUNT_ID')
-        r2_access_key_id = userdata.get('R2_ACCESS_KEY_ID')
-        r2_secret_access_key = userdata.get('R2_SECRET_ACCESS_KEY')
-    else:
-        print("当前环境是：本地或其他环境")
-        r2_account_id = os.getenv("CF_R2_ACCOUNT_ID")
-        r2_access_key_id = os.getenv("CF_R2_ACCESS_KEY_ID")
-        r2_secret_access_key = os.getenv("CF_R2_SECRET_ACCESS_KEY")
+    
+    r2_account_id = args_cli.r2_account_id
+    r2_access_key_id = args_cli.r2_access_key_id
+    r2_secret_access_key = args_cli.r2_secret_access_key
+
+
     BUCKET_NAME = "my-blog-app"
     ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
 
