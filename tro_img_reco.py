@@ -219,6 +219,7 @@ def main():
         "use_refine": True,
         "k_refine": 3,
         "k_skip_stage": 3,
+        'bg_mode': 'res_mask',
         "resume": slbr_model_path,
         "test_dir": download_dir
     })
