@@ -221,7 +221,8 @@ def main():
         "k_skip_stage": 3,
         'bg_mode': 'res_mask',
         "resume": slbr_model_path,
-        "test_dir": download_dir
+        "test_dir": download_dir,
+        'sim_metric': 'cos',
     })
     slbr_custom_args = Namespace(**slbr_custom_args)
     slbr_predict_custom(slbr_custom_args)
