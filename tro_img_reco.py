@@ -126,6 +126,7 @@ def generate_r2_key(img_filename):
     # print(f"后缀名: {extension}")
 
     upload_r2_key = f'{date_path}/{md5_hash}{extension}'
+    return upload_r2_key
     # print(upload_r2_key)
     # print(f"文件名: {img_path.name}")
     # print(f"完整路径: {img_path}")
@@ -157,20 +158,21 @@ def main():
     #     print(f"YOLO 模型不存在: {yolo_model_path}")
     #     return
 
-    # 1) 下载
+    # 1) 下载 到 图片 位置
+    img_download_dir = os.path.join(download_dir, 'imgs')
     if not args_cli.skip_download:
-        id_paths = download_images_from_csv(csv_path, download_dir)
+        id_paths = download_images_from_csv(csv_path, img_download_dir)
         print(f"下载完成，共 {len(id_paths)} 张")
     else:
         id_paths = []
-        if os.path.isdir(download_dir):
-            for f in os.listdir(download_dir):
+        if os.path.isdir(img_download_dir):
+            for f in os.listdir(img_download_dir):
                 if f.startswith("."):
                     continue
                 lower = f.lower()
                 if lower.endswith((".jpg", ".jpeg", ".png", ".webp")):
                     pid = os.path.splitext(f)[0]
-                    id_paths.append((pid, os.path.join(download_dir, f)))
+                    id_paths.append((pid, os.path.join(img_download_dir, f)))
         print(f"跳过下载，使用已有图片共 {len(id_paths)} 张")
 
     if not id_paths:
@@ -178,8 +180,7 @@ def main():
         return
 
     os.makedirs(processed_dir, exist_ok=True)
-    # Machine, slbr_args, device = load_slbr_model(slbr_model_path)
-    # crop_size = getattr(slbr_args, "crop_size", 512)
+ 
 
     for pid, local_path in id_paths:
         if not os.path.isfile(local_path):
@@ -206,7 +207,6 @@ def main():
     parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
     args_list = ['--name','slbr_v1','--nets','slbr','--models','slbr','--input-size','512','--crop_size','512','--test-batch','1','--evaluate', '--preprocess','resize','--no_flip','--mask_mode','res','--k_center','2','--use_refine','--k_refine','3','--k_skip_stage','3','--resume',slbr_model_path,'--test_dir',download_dir]
 
-        
     slbr_custom_args = parser.parse_args(args_list)
     print(slbr_custom_args)
     slbr_predict_custom(slbr_custom_args)
