@@ -62,8 +62,8 @@ def update_image_url(client, target_id, url, ACCOUNT_ID, DATABASE_ID):
 
 
 if __name__ == "__main__":
-    output_dir = ''
-    zip_path = ''
+    zip_path = '/Users/wushan/Downloads/rst_20260120121511_1801_2111.zip'
+    output_dir = '/Users/wushan/Downloads/tmp'
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)

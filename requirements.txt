@@ -12,6 +12,7 @@ scikit_image
 # scikit_learn==1.0
 # skimage
 tensorboardX
-
+requests
+ultralytics
 
 cloudflare
