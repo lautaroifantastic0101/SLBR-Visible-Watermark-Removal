@@ -121,7 +121,8 @@ def slbr_predict_custom(args):
 
 if __name__ == '__main__':
     parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
-    slbr_predict_custom(parser.parse_args())
+    print(parser.parse_args())
+    # slbr_predict_custom(parser.parse_args())
     # doc_loader,fns = test_dataloder('/Users/wushan/models/pix2pix/wm-nowm/valid/watermark', 256)
     # for i, batches in enumerate(zip(doc_loader, fns)):
     #     print(batches[1])
