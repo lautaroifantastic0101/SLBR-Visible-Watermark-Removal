@@ -161,6 +161,9 @@ def main():
     r2_access_key_id = args_cli.r2_access_key_id
     r2_secret_access_key = args_cli.r2_secret_access_key
 
+    print(f"r2_account_id: {r2_account_id}")
+    print(f"r2_access_key_id: {r2_access_key_id}")
+    print(f"r2_secret_access_key: {r2_secret_access_key}")
 
     BUCKET_NAME = "my-blog-app"
     ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
