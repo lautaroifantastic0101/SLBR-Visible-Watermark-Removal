@@ -202,9 +202,9 @@ def main():
         print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
     
     
-    slbr_custom_args = {}
+    slbr_custom_args_dict = {}
     # 根据给定的命令行参数，整理成 slbr_custom_args 字典
-    slbr_custom_args.update({
+    slbr_custom_args_dict.update({
         "name": "slbr_v1",
         "nets": "slbr",
         "models": "slbr",
@@ -225,7 +225,15 @@ def main():
         'sim_metric': 'cos',
         'project_mode':'simple',
     })
-    slbr_custom_args = Namespace(**slbr_custom_args)
+    parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
+    args_list = []
+    for key, value in slbr_custom_args_dict.items():
+        if value is True: # 处理 store_true 类型的开关
+            args_list.append(key)
+        elif value is not False:
+            args_list.extend([key, str(value)])
+        
+    slbr_custom_args = parser.parse_args(args_list)
     print(slbr_custom_args)
     slbr_predict_custom(slbr_custom_args)
 
