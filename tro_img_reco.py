@@ -20,38 +20,22 @@ import torch
 import torch.nn.functional as F
 import cv2
 import numpy as np
+from datetime import datetime
+
+
+from argparse import Namespace
+
+
 
 # 项目根目录加入 path
 _project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
+from slbr_predict import slbr_predict_custom
 import src.networks as nets
 import src.models as models
 from options import Options
-
-
-def tensor2np(x, isMask=False):
-    if isMask:
-        if x.shape[1] == 1:
-            x = x.repeat(1, 3, 1, 1)
-        x = ((x.cpu().detach())) * 255
-    else:
-        x = x.cpu().detach()
-        mean = 0
-        std = 1
-        x = (x * std + mean) * 255
-    return x.numpy().transpose(0, 2, 3, 1).astype(np.uint8)
-
-
-def preprocess(file_path, img_size=512):
-    img_J = cv2.imread(file_path)
-    if img_J is None:
-        return None
-    img_J = cv2.cvtColor(img_J, cv2.COLOR_BGR2RGB).astype(np.float16) / 255.0
-    img_J = torch.from_numpy(img_J.transpose(2, 0, 1)[np.newaxis, ...])
-    img_J = F.interpolate(img_J.float(), size=(img_size, img_size), mode="bilinear")
-    return img_J
 
 
 def download_images_from_csv(csv_path: str, download_dir: str) -> list:
@@ -81,7 +65,7 @@ def download_images_from_csv(csv_path: str, download_dir: str) -> list:
             ext = "." + url.split("?")[0].rsplit(".", 1)[-1].lower()
         if ext not in (".jpg", ".jpeg", ".png", ".webp"):
             ext = ".jpg"
-        local_name = f"{pid}{ext}"
+        local_name = f'{pid}_{os.path.basename(url.split("?")[0])}'
         local_path = os.path.join(download_dir, local_name)
         try:
             r = requests.get(url, timeout=15)
@@ -94,20 +78,6 @@ def download_images_from_csv(csv_path: str, download_dir: str) -> list:
     return results
 
 
-def load_slbr_model(model_path: str):
-    """加载 SLBR 去水印模型。"""
-    parser = Options().init(argparse.ArgumentParser())
-    args = parser.parse_args([])
-    args.resume = model_path
-    args.evaluate = True
-    args.nets = "slbr"
-    args.models = "slbr"
-    args.crop_size = 512
-    args.input_size = 512
-    args.gan_norm = getattr(args, "gan_norm", False)
-    Machine = models.__dict__[args.models](datasets=(None, None), args=args)
-    Machine.model.eval()
-    return Machine, args, Machine.device
 
 
 def classify_with_yolo(image_path: str, yolo_model_path: str):
@@ -135,28 +105,30 @@ def classify_with_yolo(image_path: str, yolo_model_path: str):
     return None
 
 
-def remove_watermark_slbr(Machine, args, device, image_path: str, crop_size: int = 512):
-    """对单张图片做 SLBR 去水印，返回 BGR  numpy 图 (H,W,3)。"""
-    img_t = preprocess(image_path, img_size=crop_size)
-    if img_t is None:
-        return None
-    img_t = img_t.to(device).float()
-    with torch.no_grad():
-        if getattr(args, "gan_norm", False):
-            inputs = img_t * 2.0 - 1.0
-        else:
-            inputs = img_t
-        outputs = Machine.model(inputs)
-    imoutput, immask_all, _ = outputs
-    imoutput = imoutput[0]
-    immask = immask_all[0]
-    if getattr(args, "gan_norm", False):
-        imfinal = imoutput * immask + (inputs) * (1 - immask)
-        imfinal = (imfinal + 1.0) / 2.0
-    else:
-        imfinal = imoutput * immask + img_t * (1 - immask)
-    out_rgb = tensor2np(imfinal)[0]
-    return cv2.cvtColor(out_rgb, cv2.COLOR_RGB2BGR)
+def generate_r2_key(img_filename):
+    """_summary_
+    Args:
+        img_path (_type_): _description_
+    """
+    now = datetime.now()
+    date_path = f"/{now.year}/{now.month:02d}/{now.day:02d}"
+        # print(date_path)
+        
+    # 解析 img_filename，分别获得文件名和后缀
+    name_base, extension = os.path.splitext(img_filename)
+    row_id = name_base.split('_')[0]
+    img_file_name = ''.join(name_base.split('_')[1:])
+    
+    import hashlib
+    md5_hash = hashlib.md5(img_file_name.encode('utf-8')).hexdigest()
+        # print(f"MD5（32位）: {md5_hash}")
+    extension = extension.lower()  # 包括点，如 ".jpg"
+    # print(f"后缀名: {extension}")
+
+    upload_r2_key = f'{date_path}/{md5_hash}{extension}'
+    # print(upload_r2_key)
+    # print(f"文件名: {img_path.name}")
+    # print(f"完整路径: {img_path}")
 
 
 def main():
@@ -178,12 +150,12 @@ def main():
     if not os.path.isfile(csv_path):
         print(f"CSV 不存在: {csv_path}")
         return
-    if not os.path.isfile(slbr_model_path):
-        print(f"SLBR 模型不存在: {slbr_model_path}")
-        return
-    if not os.path.isfile(yolo_model_path):
-        print(f"YOLO 模型不存在: {yolo_model_path}")
-        return
+    # if not os.path.isfile(slbr_model_path):
+    #     print(f"SLBR 模型不存在: {slbr_model_path}")
+    #     return
+    # if not os.path.isfile(yolo_model_path):
+    #     print(f"YOLO 模型不存在: {yolo_model_path}")
+    #     return
 
     # 1) 下载
     if not args_cli.skip_download:
@@ -205,30 +177,53 @@ def main():
         print("没有可处理图片")
         return
 
-    # os.makedirs(processed_dir, exist_ok=True)
+    os.makedirs(processed_dir, exist_ok=True)
     # Machine, slbr_args, device = load_slbr_model(slbr_model_path)
     # crop_size = getattr(slbr_args, "crop_size", 512)
 
-    # for pid, local_path in id_paths:
-    #     if not os.path.isfile(local_path):
-    #         print(f"文件不存在，跳过: {local_path}")
-    #         continue
-    #     # 2) YOLO 分类
-    #     cls_info = classify_with_yolo(local_path, yolo_model_path)
-    #     if cls_info:
-    #         print(f"[{pid}] 分类: {cls_info.get('class_name', '')} ({cls_info.get('conf', 0):.2f})")
-    #     # 3) 去水印
-    #     out_img = remove_watermark_slbr(Machine, slbr_args, device, local_path, crop_size)
-    #     if out_img is None:
-    #         print(f"[{pid}] 去水印失败（可能无法读取图片）")
-    #         continue
-    #     base, ext = os.path.splitext(os.path.basename(local_path))
-    #     out_name = f"{base}{ext}" if ext else f"{base}.jpg"
-    #     out_path = os.path.join(processed_dir, out_name)
-    #     cv2.imwrite(out_path, out_img)
-    #     print(f"[{pid}] 已保存: {out_path}")
-
-    # print("全部完成。")
+    for pid, local_path in id_paths:
+        if not os.path.isfile(local_path):
+            print(f"文件不存在，跳过: {local_path}")
+            continue
+        # 2) YOLO 分类
+        cls_info = classify_with_yolo(local_path, yolo_model_path)
+        if cls_info:
+            print(f"[{pid}] 分类: {cls_info.get('class_name', '')} ({cls_info.get('conf', 0):.2f})")
+        # 3) 去水印
+        # out_img = remove_watermark_slbr(Machine, slbr_args, device, local_path, crop_size)
+        # if out_img is None:
+        #     print(f"[{pid}] 去水印失败（可能无法读取图片）")
+        #     continue
+        base, ext = os.path.splitext(os.path.basename(local_path))
+        out_name = f"{base}{ext}" if ext else f"{base}.jpg"
+        out_path = os.path.join(processed_dir, out_name)
+        # cv2.imwrite(out_path, out_img)
+        r2key = generate_r2_key(out_name)
+        print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
+    
+    
+    slbr_custom_args = {}
+    # 根据给定的命令行参数，整理成 slbr_custom_args 字典
+    slbr_custom_args.update({
+        "name": "slbr_v1",
+        "nets": "slbr",
+        "models": "slbr",
+        "input_size": 512,
+        "crop_size": 512,
+        "test_batch": 1,
+        "evaluate": True,
+        "preprocess": "resize",
+        "no_flip": True,
+        "mask_mode": "res",
+        "k_center": 2,
+        "use_refine": True,
+        "k_refine": 3,
+        "k_skip_stage": 3,
+        "resume": slbr_model_path,
+        "test_dir": download_dir
+    })
+    slbr_custom_args = Namespace(**slbr_custom_args)
+    slbr_predict_custom(slbr_custom_args)
 
 
 if __name__ == "__main__":
