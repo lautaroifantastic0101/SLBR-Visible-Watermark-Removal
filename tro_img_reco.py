@@ -202,36 +202,10 @@ def main():
         print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
     
     
-    slbr_custom_args_dict = {}
-    # 根据给定的命令行参数，整理成 slbr_custom_args 字典
-    slbr_custom_args_dict.update({
-        "name": "slbr_v1",
-        "nets": "slbr",
-        "models": "slbr",
-        "input_size": 512,
-        "crop_size": 512,
-        "test_batch": 1,
-        "evaluate": True,
-        "preprocess": "resize",
-        "no_flip": True,
-        "mask_mode": "res",
-        "k_center": 2,
-        "use_refine": True,
-        "k_refine": 3,
-        "k_skip_stage": 3,
-        'bg_mode': 'res_mask',
-        "checkpoint": slbr_model_path,
-        "test_dir": download_dir,
-        'sim_metric': 'cos',
-        'project_mode':'simple',
-    })
+
     parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
-    args_list = []
-    for key, value in slbr_custom_args_dict.items():
-        if value is True: # 处理 store_true 类型的开关
-            args_list.append(key)
-        elif value is not False:
-            args_list.extend([key, str(value)])
+    args_list = ['--name','slbr_v1','--nets','slbr','--models','slbr','--input-size','512','--crop_size','512','--test-batch','1','--evaluate', '--preprocess','resize','--no_flip','--mask_mode','res','--k_center','2','--use_refine','--k_refine','3','--k_skip_stage','3','--resume','/content/model_best.pth.tar','--test_dir','/content/Watermark']
+
         
     slbr_custom_args = parser.parse_args(args_list)
     print(slbr_custom_args)
