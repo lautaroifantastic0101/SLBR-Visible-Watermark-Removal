@@ -15,12 +15,14 @@ import argparse
 import os
 import sys
 import csv
+import boto3
 import requests
 import torch
 import torch.nn.functional as F
 import cv2
 import numpy as np
 from datetime import datetime
+
 
 
 from argparse import Namespace
@@ -32,6 +34,7 @@ _project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
+from parse_imgs_zip_upload import upload_file
 from slbr_predict import slbr_predict_custom
 import src.networks as nets
 import src.models as models
@@ -108,7 +111,7 @@ def classify_with_yolo(image_path: str, yolo_model_path: str):
 def generate_r2_key(img_filename):
     """_summary_
     Args:
-        img_path (_type_): _description_
+        img_filenam: 文件的名字，不带路径
     """
     now = datetime.now()
     date_path = f"/{now.year}/{now.month:02d}/{now.day:02d}"
@@ -130,7 +133,8 @@ def generate_r2_key(img_filename):
     # print(upload_r2_key)
     # print(f"文件名: {img_path.name}")
     # print(f"完整路径: {img_path}")
-
+def is_colab():
+    return 'google.colab' in sys.modules 
 
 def main():
     parser = argparse.ArgumentParser(description="CSV 图片下载 -> YOLO 分类 -> SLBR 去水印")
@@ -147,6 +151,28 @@ def main():
     processed_dir = os.path.abspath(args_cli.processed_dir)
     slbr_model_path = os.path.abspath(args_cli.slbr_model)
     yolo_model_path = os.path.abspath(args_cli.yolo_model)
+
+    if is_colab():
+        print("当前环境是：Google Colab")
+        from google.colab import userdata
+        r2_account_id = userdata.get('R2_ACCOUNT_ID')
+        r2_access_key_id = userdata.get('R2_ACCESS_KEY_ID')
+        r2_secret_access_key = userdata.get('R2_SECRET_ACCESS_KEY')
+    else:
+        print("当前环境是：本地或其他环境")
+        r2_account_id = os.getenv("CF_R2_ACCOUNT_ID")
+        r2_access_key_id = os.getenv("CF_R2_ACCESS_KEY_ID")
+        r2_secret_access_key = os.getenv("CF_R2_SECRET_ACCESS_KEY")
+    BUCKET_NAME = "my-blog-app"
+    ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
+
+    # 【0】 Initialize the S3 client
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=ENDPOINT_URL,
+        aws_access_key_id=r2_access_key_id,
+        aws_secret_access_key=r2_secret_access_key,
+    )
 
     if not os.path.isfile(csv_path):
         print(f"CSV 不存在: {csv_path}")
@@ -178,10 +204,11 @@ def main():
     if not id_paths:
         print("没有可处理图片")
         return
-
     os.makedirs(processed_dir, exist_ok=True)
  
 
+    # 【2】 图片进行分类；将分类信息进行存储
+    pid_to_class = {}
     for pid, local_path in id_paths:
         if not os.path.isfile(local_path):
             print(f"文件不存在，跳过: {local_path}")
@@ -190,6 +217,7 @@ def main():
         cls_info = classify_with_yolo(local_path, yolo_model_path)
         if cls_info:
             print(f"[{pid}] 分类: {cls_info.get('class_name', '')} ({cls_info.get('conf', 0):.2f})")
+            pid_to_class[pid] = cls_info.get('class_name', '')
         # 3) 去水印
         # out_img = remove_watermark_slbr(Machine, slbr_args, device, local_path, crop_size)
         # if out_img is None:
@@ -198,19 +226,32 @@ def main():
         base, ext = os.path.splitext(os.path.basename(local_path))
         out_name = f"{base}{ext}" if ext else f"{base}.jpg"
         out_path = os.path.join(processed_dir, out_name)
-        # cv2.imwrite(out_path, out_img)
         r2key = generate_r2_key(out_name)
+        # cv2.imwrite(out_path, out_img)
         print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
     
-    
 
+    # 【3】去水印处理
     parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
     args_list = ['--name','slbr_v1','--nets','slbr','--models','slbr','--input-size','512','--crop_size','512','--test-batch','1','--evaluate', '--preprocess','resize','--no_flip','--mask_mode','res','--k_center','2','--use_refine','--k_refine','3','--k_skip_stage','3','--resume',slbr_model_path,'--test_dir',download_dir]
-
     slbr_custom_args = parser.parse_args(args_list)
     print(slbr_custom_args)
     slbr_predict_custom(slbr_custom_args)
 
+    
+    # 【4】上传到R2文件夹，以及更新D1数据库路径
+    rst_img_path = os.path.join(download_dir, 'rst')
+    for f in os.listdir(rst_img_path):
+        if f.startswith("."):
+            continue
+        lower = f.lower()
+        if lower.endswith((".jpg", ".jpeg", ".png", ".webp", ".png")):
+            img_file = os.path.join(rst_img_path, f)
+            print(f"处理去水印图片: {img_file}")
+            img_file_name = os.path.basename(img_file)
+            pid = img_file_name.split('_')[0]
+            r2key = generate_r2_key(img_file_name)
+            upload_file(client=s3_client, bucketname=BUCKET_NAME, local_file_path=img_file, upload_r2_key=r2key)
 
 if __name__ == "__main__":
     main()
