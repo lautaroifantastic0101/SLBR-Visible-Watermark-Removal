@@ -168,10 +168,9 @@ def main():
     d1_account_id = args_cli.cf_d1_account_id
     d1_database_id = args_cli.cf_d1_database_id
 
-
-    print(f"r2_account_id: {r2_account_id}")
-    print(f"r2_access_key_id: {r2_access_key_id}")
-    print(f"r2_secret_access_key: {r2_secret_access_key}")
+    # print(f"r2_account_id: {r2_account_id}")
+    # print(f"r2_access_key_id: {r2_access_key_id}")
+    # print(f"r2_secret_access_key: {r2_secret_access_key}")
 
     BUCKET_NAME = "my-blog-app"
     ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
@@ -211,7 +210,7 @@ def main():
                     continue
                 lower = f.lower()
                 if lower.endswith((".jpg", ".jpeg", ".png", ".webp")):
-                    pid = os.path.splitext(f)[0]
+                    pid = os.path.splitext(f)[0].split('_')[0]
                     id_paths.append((pid, os.path.join(img_download_dir, f)))
         print(f"跳过下载，使用已有图片共 {len(id_paths)} 张")
 
