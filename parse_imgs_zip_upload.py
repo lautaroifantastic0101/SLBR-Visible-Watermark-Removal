@@ -72,7 +72,7 @@ def update_image_url_and_class(client, target_id, url, class_name, ACCOUNT_ID, D
             account_id=ACCOUNT_ID,
             database_id=DATABASE_ID,
             # 参数化查询，防止注入
-            sql="UPDATE tro_post_img SET new_url = ?, class_name = ? WHERE id = ?",
+            sql="UPDATE tro_post_img SET new_url = ?, img_type = ? WHERE id = ?",
             params=[url, class_name, target_id]
         )
         # 检查是否更新成功
