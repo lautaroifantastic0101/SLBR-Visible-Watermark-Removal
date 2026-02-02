@@ -16,6 +16,7 @@ import os
 import sys
 import csv
 import boto3
+from cloudflare import Cloudflare
 import requests
 import torch
 import torch.nn.functional as F
@@ -34,7 +35,7 @@ _project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from parse_imgs_zip_upload import upload_file
+from parse_imgs_zip_upload import update_image_url, upload_file
 from slbr_predict import slbr_predict_custom
 import src.networks as nets
 import src.models as models
@@ -148,6 +149,9 @@ def main():
     parser.add_argument("--r2_account_id", required=False, help="Cloudflare R2 ACCOUNT_ID，可以通过环境变量传递")
     parser.add_argument("--r2_access_key_id", required=False, help="Cloudflare R2 ACCESS_KEY_ID，可以通过环境变量传递")
     parser.add_argument("--r2_secret_access_key", required=False, help="Cloudflare R2 SECRET_ACCESS_KEY，可以通过环境变量传递")
+    parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可以通过环境变量传递")
+    parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可以通过环境变量传递")
+    parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可以通过环境变量传递")
     args_cli = parser.parse_args()
 
     csv_path = os.path.abspath(args_cli.csv)
@@ -160,6 +164,10 @@ def main():
     r2_account_id = args_cli.r2_account_id
     r2_access_key_id = args_cli.r2_access_key_id
     r2_secret_access_key = args_cli.r2_secret_access_key
+    d1_api_token = args_cli.cf_d1_api_token
+    d1_account_id = args_cli.cf_d1_account_id
+    d1_database_id = args_cli.cf_d1_database_id
+
 
     print(f"r2_account_id: {r2_account_id}")
     print(f"r2_access_key_id: {r2_access_key_id}")
@@ -174,6 +182,10 @@ def main():
         endpoint_url=ENDPOINT_URL,
         aws_access_key_id=r2_access_key_id,
         aws_secret_access_key=r2_secret_access_key,
+    )
+
+    d1_client = Cloudflare(
+        api_token=d1_api_token,  # This is the default and can be omitted
     )
 
     if not os.path.isfile(csv_path):
@@ -253,7 +265,21 @@ def main():
             img_file_name = os.path.basename(img_file)
             pid = img_file_name.split('_')[0]
             r2key = generate_r2_key(img_file_name)
-            upload_file(client=s3_client, bucketname=BUCKET_NAME, local_file_path=img_file, upload_r2_key=r2key)
+            try:
+                upload_file(client=s3_client, bucketname=BUCKET_NAME, local_file_path=img_file, upload_r2_key=r2key)
+                update_image_url(d1_client, pid, r2key, d1_account_id, d1_database_id)
+            except Exception as e:
+                print(f"上传文件时发生异常: {e}, 文件: {img_file}")
+                continue
+
+
+
+
+
+            
+
+            
+    print("上传完成")
 
 if __name__ == "__main__":
     main()
