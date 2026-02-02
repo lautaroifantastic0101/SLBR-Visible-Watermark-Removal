@@ -35,7 +35,7 @@ _project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from parse_imgs_zip_upload import update_image_url, upload_file
+from parse_imgs_zip_upload import update_image_url, update_image_url_and_class, upload_file
 from slbr_predict import slbr_predict_custom
 import src.networks as nets
 import src.models as models
@@ -264,10 +264,14 @@ def main():
             print(f"处理去水印图片: {img_file}")
             img_file_name = os.path.basename(img_file)
             pid = img_file_name.split('_')[0]
-            r2key = generate_r2_key(img_file_name)
             try:
+                if pid not in pid_to_class:
+                    print(f"[{pid}] 分类信息不存在，跳过")
+                    continue
+                predict_img_class = pid_to_class[pid]
+                r2key = generate_r2_key(img_file_name)
                 upload_file(client=s3_client, bucketname=BUCKET_NAME, local_file_path=img_file, upload_r2_key=r2key)
-                update_image_url(d1_client, pid, r2key, d1_account_id, d1_database_id)
+                update_image_url_and_class(d1_client, pid, r2key, predict_img_class, d1_account_id, d1_database_id)
             except Exception as e:
                 print(f"上传文件时发生异常: {e}, 文件: {img_file}")
                 continue
