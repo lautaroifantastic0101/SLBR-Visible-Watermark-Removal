@@ -302,7 +302,8 @@ def main():
     
 
     if args_cli.skip_remove_wm:
-        rst_img_path = download_dir
+        # 跳过remove wm
+        rst_img_path = os.path.join(download_dir, 'imgs')
     else:
         rst_img_path = os.path.join(download_dir, 'rst')
     print(f"rst_img_path = {rst_img_path}")
