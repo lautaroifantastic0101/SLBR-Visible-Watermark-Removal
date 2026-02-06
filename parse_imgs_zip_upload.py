@@ -102,12 +102,15 @@ def get_origin_urls_with_null_new_url(client, ACCOUNT_ID, DATABASE_ID, size):
         response = client.d1.database.query(
             account_id=ACCOUNT_ID,
             database_id=DATABASE_ID,
-            sql="SELECT origin_url FROM tro_post_img WHERE new_url IS NULL limit " + size
+            sql="SELECT id, origin_url FROM tro_post_img WHERE new_url IS NULL limit " + size
         )
         # 处理返回结果，假定 response.result[0].results 为结果集
         records = response.result[0].results if hasattr(response.result[0], "results") else []
-        origin_urls = [row["origin_url"] for row in records if "origin_url" in row]
-        return origin_urls
+        # 返回 [(id, origin_url), ...]
+        result = [(row["id"], row["origin_url"]) for row in records if "origin_url" in row and "id" in row]
+        # INSERT_YOUR_CODE
+        print("DEBUG: get_origin_urls_with_null_new_url result =", result)
+        return result
     except Exception as e:
         print(f"执行查询出错: {e}")
         return []
