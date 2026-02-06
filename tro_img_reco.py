@@ -301,7 +301,7 @@ def main():
         print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
     
 
-    if args_cli.skip_remove_wm:
+    if not args_cli.skip_remove_wm:
         rst_img_path = download_dir
     else:
         rst_img_path = os.path.join(download_dir, 'rst')
