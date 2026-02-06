@@ -307,7 +307,7 @@ def main():
         rst_img_path = os.path.join(download_dir, 'rst')
 
     # 【3】去水印处理
-    if args_cli.skip_remove_wm:
+    if not args_cli.skip_remove_wm:
         parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
         args_list = ['--name','slbr_v1','--nets','slbr','--models','slbr','--input-size','512','--crop_size','512','--test-batch','1','--evaluate', '--preprocess','resize','--no_flip','--mask_mode','res','--k_center','2','--use_refine','--k_refine','3','--k_skip_stage','3','--resume',slbr_model_path,'--test_dir',download_dir]
         slbr_custom_args = parser.parse_args(args_list)
