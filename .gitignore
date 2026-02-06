@@ -45,4 +45,6 @@ experiments/
 weights/
 *.pth
 *.pt
+!smallmodels/*
+
 *.ckpt

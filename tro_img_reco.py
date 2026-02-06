@@ -224,9 +224,6 @@ def main():
         api_token=d1_api_token,  # This is the default and can be omitted
     )
 
-    if not os.path.isfile(csv_path):
-        print(f"CSV 不存在: {csv_path}")
-        return
     # if not os.path.isfile(slbr_model_path):
     #     print(f"SLBR 模型不存在: {slbr_model_path}")
     #     return
@@ -259,6 +256,10 @@ def main():
             id_paths = download_images_from_csv(csv_path, img_download_dir)
             print(f"下载完成，共 {len(id_paths)} 张")
     else:
+        # csv文件不存在
+        if not os.path.isfile(csv_path):
+            print(f"CSV 不存在: {csv_path}")
+            return
         id_paths = []
         if os.path.isdir(img_download_dir):
             for f in os.listdir(img_download_dir):
