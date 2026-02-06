@@ -12,9 +12,11 @@
 CSV 格式：表头需含 id 和 url 列（大小写不敏感）。
 """
 import argparse
+from ast import arg
 import os
 import sys
 import csv
+from turtle import down
 import boto3
 from cloudflare import Cloudflare
 import requests
@@ -28,6 +30,8 @@ from datetime import datetime
 
 from argparse import Namespace
 
+from tqdm import cli
+
 
 
 # 项目根目录加入 path
@@ -35,7 +39,7 @@ _project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from parse_imgs_zip_upload import update_image_url, update_image_url_and_class, upload_file
+from parse_imgs_zip_upload import get_origin_urls_with_null_new_url, update_image_url, update_image_url_and_class, upload_file
 from slbr_predict import slbr_predict_custom
 import src.networks as nets
 import src.models as models
@@ -80,6 +84,36 @@ def download_images_from_csv(csv_path: str, download_dir: str) -> list:
         except Exception as e:
             print(f"下载失败 [{pid}] {url}: {e}")
     return results
+
+def download_images_from_url_list(rows: list, download_dir: str) -> list:
+    """
+    从传入的 [(id, url), ...] 列表批量下载图片到 download_dir，返回本地路径列表 [(id, local_path), ...]
+    Args:
+        rows (list): 每个元素为 (id, url)
+        download_dir (str): 保存图片的目录
+    Returns:
+        list: [(id, local_path), ...]
+    """
+    os.makedirs(download_dir, exist_ok=True)
+    results = []
+    for pid, url in rows:
+        ext = ".jpg"
+        if "." in url.split("?")[0]:
+            ext = "." + url.split("?")[0].rsplit(".", 1)[-1].lower()
+        if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+            ext = ".jpg"
+        local_name = f"{pid}_{os.path.basename(url.split('?')[0])}"
+        local_path = os.path.join(download_dir, local_name)
+        try:
+            r = requests.get(url, timeout=15)
+            r.raise_for_status()
+            with open(local_path, "wb") as fp:
+                fp.write(r.content)
+            results.append((pid, local_path))
+        except Exception as e:
+            print(f"下载失败 [{pid}] {url}: {e}")
+    return results
+
 
 
 
@@ -148,10 +182,12 @@ def main():
     # 通过外部输入读取 r2_account_id, r2_access_key_id, r2_secret_access_key
     parser.add_argument("--r2_account_id", required=False, help="Cloudflare R2 ACCOUNT_ID，可以通过环境变量传递")
     parser.add_argument("--r2_access_key_id", required=False, help="Cloudflare R2 ACCESS_KEY_ID，可以通过环境变量传递")
+    parser.add_argument("--from_sql_size", required=False, type=int, default=None, help="从 SQL 查询开始的索引，指定获取多少条数据（如 100）")
     parser.add_argument("--r2_secret_access_key", required=False, help="Cloudflare R2 SECRET_ACCESS_KEY，可以通过环境变量传递")
     parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可以通过环境变量传递")
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可以通过环境变量传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可以通过环境变量传递")
+    parser.add_argument("--skip_remove_wm", action="store_true", help="只进行分类，不进行去水印")
     args_cli = parser.parse_args()
 
     csv_path = os.path.abspath(args_cli.csv)
@@ -167,6 +203,7 @@ def main():
     d1_api_token = args_cli.cf_d1_api_token
     d1_account_id = args_cli.cf_d1_account_id
     d1_database_id = args_cli.cf_d1_database_id
+    from_sql_size = args_cli.from_sql_size
 
     # print(f"r2_account_id: {r2_account_id}")
     # print(f"r2_access_key_id: {r2_access_key_id}")
@@ -200,8 +237,27 @@ def main():
     # 1) 下载 到 图片 位置
     img_download_dir = os.path.join(download_dir, 'imgs')
     if not args_cli.skip_download:
-        id_paths = download_images_from_csv(csv_path, img_download_dir)
-        print(f"下载完成，共 {len(id_paths)} 张")
+        if from_sql_size:
+            # 调用 get_origin_urls_with_null_new_url, 获取指定数量的origin_url, 组成 id_paths 列表
+            if d1_account_id and d1_database_id and from_sql_size:
+                rows = get_origin_urls_with_null_new_url(
+                    client=d1_client, 
+                    ACCOUNT_ID=d1_account_id, 
+                    DATABASE_ID=d1_database_id, 
+                    size=str(from_sql_size)
+                )
+                # 调用 download_images_from_url_list，根据 id_url 列表下载图片
+                # 假设 rows 是 [(id, url), ...]
+                id_paths = download_images_from_url_list(rows, img_download_dir)
+                print(f"下载完成，共 {len(id_paths)} 张")
+            else:
+                print("缺少 d1_account_id, d1_database_id 或 from_sql_size，无法从数据库获取图片URL")
+                exit()
+            
+            pass
+        else:
+            id_paths = download_images_from_csv(csv_path, img_download_dir)
+            print(f"下载完成，共 {len(id_paths)} 张")
     else:
         id_paths = []
         if os.path.isdir(img_download_dir):
@@ -244,16 +300,21 @@ def main():
         print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
     
 
+    if args_cli.skip_remove_wm:
+        rst_img_path = download_dir
+    else:
+        rst_img_path = os.path.join(download_dir, 'rst')
+
     # 【3】去水印处理
-    parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
-    args_list = ['--name','slbr_v1','--nets','slbr','--models','slbr','--input-size','512','--crop_size','512','--test-batch','1','--evaluate', '--preprocess','resize','--no_flip','--mask_mode','res','--k_center','2','--use_refine','--k_refine','3','--k_skip_stage','3','--resume',slbr_model_path,'--test_dir',download_dir]
-    slbr_custom_args = parser.parse_args(args_list)
-    print(slbr_custom_args)
-    slbr_predict_custom(slbr_custom_args)
+    if args_cli.skip_remove_wm:
+        parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
+        args_list = ['--name','slbr_v1','--nets','slbr','--models','slbr','--input-size','512','--crop_size','512','--test-batch','1','--evaluate', '--preprocess','resize','--no_flip','--mask_mode','res','--k_center','2','--use_refine','--k_refine','3','--k_skip_stage','3','--resume',slbr_model_path,'--test_dir',download_dir]
+        slbr_custom_args = parser.parse_args(args_list)
+        print(slbr_custom_args)
+        slbr_predict_custom(slbr_custom_args)
 
     
     # 【4】上传到R2文件夹，以及更新D1数据库路径
-    rst_img_path = os.path.join(download_dir, 'rst')
     for f in os.listdir(rst_img_path):
         if f.startswith("."):
             continue
@@ -274,14 +335,6 @@ def main():
             except Exception as e:
                 print(f"上传文件时发生异常: {e}, 文件: {img_file}")
                 continue
-
-
-
-
-
-            
-
-            
     print("上传完成")
 
 if __name__ == "__main__":

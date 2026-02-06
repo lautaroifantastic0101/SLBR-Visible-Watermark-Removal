@@ -86,6 +86,33 @@ def update_image_url_and_class(client, target_id, url, class_name, ACCOUNT_ID, D
 
 # 调用例子
 
+def get_origin_urls_with_null_new_url(client, ACCOUNT_ID, DATABASE_ID, size):
+    """
+    查询 tro_post_img 表中 new_url 为 null 的 origin_url 列表
+
+    Args:
+        client: Cloudflare D1 客户端
+        ACCOUNT_ID: D1 account id
+        DATABASE_ID: D1 database id
+
+    Returns:
+        List[str]: origin_url 列表
+    """
+    try:
+        response = client.d1.database.query(
+            account_id=ACCOUNT_ID,
+            database_id=DATABASE_ID,
+            sql="SELECT origin_url FROM tro_post_img WHERE new_url IS NULL limit " + size
+        )
+        # 处理返回结果，假定 response.result[0].results 为结果集
+        records = response.result[0].results if hasattr(response.result[0], "results") else []
+        origin_urls = [row["origin_url"] for row in records if "origin_url" in row]
+        return origin_urls
+    except Exception as e:
+        print(f"执行查询出错: {e}")
+        return []
+
+
 
 
 
