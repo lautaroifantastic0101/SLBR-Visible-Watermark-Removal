@@ -301,7 +301,7 @@ def main():
         # cv2.imwrite(out_path, out_img)
         print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
     # INSERT_YOUR_CODE
-    print("DEBUG: pid_to_class =", pid_to_class)
+    # print("DEBUG: pid_to_class =", pid_to_class)
     
 
     if args_cli.skip_remove_wm:
