@@ -286,8 +286,9 @@ def main():
         # 2) YOLO 分类
         cls_info = classify_with_yolo(local_path, yolo_model_path)
         if cls_info:
-            print(f"[{pid}] 分类: {cls_info.get('class_name', '')} ({cls_info.get('conf', 0):.2f})")
-            pid_to_class[pid] = cls_info.get('class_name', '')
+            str_pid = str(pid)
+            print(f"[{str_pid}] 分类: {cls_info.get('class_name', '')} ({cls_info.get('conf', 0):.2f})")
+            pid_to_class[str_pid] = cls_info.get('class_name', '')
         # 3) 去水印
         # out_img = remove_watermark_slbr(Machine, slbr_args, device, local_path, crop_size)
         # if out_img is None:
