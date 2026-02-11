@@ -99,16 +99,16 @@ def main():
     client = Cloudflare(api_token=token)
     result = update_is_multi_case_number(client, account_id, database_id)
     print(f"共处理 {len(result)} 条")
-    # for row in result:
-    #     cases = row.get("case_numbers", [])
-    #     multi = row.get("is_multi_case_number", "")
-    #     err = row.get("error", "")
-    #     msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
-    #     if cases:
-    #         msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
-    #     if err:
-    #         msg += f", error={err}"
-    #     print(msg)
+    for row in result:
+        cases = row.get("case_numbers", [])
+        multi = row.get("is_multi_case_number", "")
+        err = row.get("error", "")
+        msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
+        if cases:
+            msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
+        if err:
+            msg += f", error={err}"
+        print(msg)
     return result
 
 
