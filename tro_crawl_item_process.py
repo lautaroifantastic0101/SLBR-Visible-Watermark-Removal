@@ -44,7 +44,7 @@ def update_is_multi_case_number(client, account_id, database_id):
     # 先计算每条记录的案号、is_multi、case_number_arr(JSON)，并收集结果
     results = []
     id_to_value = []  # [(id, is_multi, case_number_arr_json), ...]
-    for row in rows:
+    for row in rows[:30]:
         rid, content = row["id"], row["content"]
         case_numbers = find_case_numbers(content)
         is_multi = "1" if len(case_numbers) >= 2 else "0"
@@ -66,6 +66,8 @@ def update_is_multi_case_number(client, account_id, database_id):
     for rid, _, arr in id_to_value:
         params.extend([rid, arr])
     params.extend([rid for rid, _, _ in id_to_value])
+    print(update_sql)
+    print(params)
     try:
         client.d1.database.query(
             database_id=database_id,
