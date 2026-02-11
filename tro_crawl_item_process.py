@@ -9,10 +9,6 @@ load_dotenv()
 # 案号格式：如 25-cv-06628、2025-cv-06628（数字-cv-数字）
 CASE_NUMBER_PATTERN = re.compile(r"\b\d{2,4}-cv-\d{4,}\b", re.IGNORECASE)
 
-# SQLite 单次绑定参数上限约 999，每行 5 个参数，每批最多约 199 行
-UPDATE_BATCH_SIZE = 150
-
-
 def select_crawl_item_content(client, account_id, database_id):
     """执行 SQL：从 tro_crawl_item_tb 查询 id 与 title+content 拼接内容，返回结果列表。"""
     sql = """
@@ -40,48 +36,27 @@ def find_case_numbers(content: str):
 
 
 def update_is_multi_case_number(client, account_id, database_id):
-    """根据爬取内容中案号数量判断是否多个案号，并批量更新 is_multi_case_number、case_number_arr 字段。"""
+    """根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）。"""
     rows = select_crawl_item_content(client, account_id, database_id)
     if not rows:
         return []
-    # 先计算每条记录的案号、is_multi、case_number_arr(JSON)，并收集结果
     results = []
-    id_to_value = []  # [(id, is_multi, case_number_arr_json), ...]
+    update_sql = "UPDATE tro_crawl_item_tb SET is_multi_case_number = ?, case_number_arr = ? WHERE id = ?"
     for row in rows:
         rid, content = row["id"], row["content"]
         case_numbers = find_case_numbers(content)
         is_multi = "1" if len(case_numbers) >= 2 else "0"
         case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
         results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_numbers})
-        id_to_value.append((rid, is_multi, case_number_arr_json))
-    # 按批执行 UPDATE，避免 SQLite 参数上限（约 999）
-    for i in range(0, len(id_to_value), UPDATE_BATCH_SIZE):
-        chunk = id_to_value[i : i + UPDATE_BATCH_SIZE]
-        case_part = " WHEN ? THEN ?" * len(chunk)
-        placeholders = ", ".join(["?"] * len(chunk))
-        update_sql = (
-            f"UPDATE tro_crawl_item_tb SET "
-            f"is_multi_case_number = CASE id{case_part} END, "
-            f"case_number_arr = CASE id{case_part} END "
-            f"WHERE id IN ({placeholders})"
-        )
-        params = []
-        for rid, is_m, arr in chunk:
-            params.extend([rid, is_m])
-        for rid, _, arr in chunk:
-            params.extend([rid, arr])
-        params.extend([rid for rid, _, _ in chunk])
         try:
             client.d1.database.query(
                 database_id=database_id,
                 account_id=account_id,
                 sql=update_sql,
-                params=params,
+                params=[is_multi, case_number_arr_json, rid],
             )
         except Exception as e:
-            err_msg = str(e)
-            for r in results[i : i + len(chunk)]:
-                r["error"] = err_msg
+            results[-1]["error"] = str(e)
     return results
 
 def main():
