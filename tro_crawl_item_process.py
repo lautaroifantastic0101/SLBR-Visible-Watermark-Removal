@@ -66,7 +66,7 @@ def update_is_multi_case_number(client, account_id, database_id):
     update_sql = "UPDATE tro_crawl_item_tb SET is_multi_case_number = ?, case_number_arr = ? WHERE id = ?"
     cnt = 0
     update_sql_arr = []
-    for row in rows[:100]:
+    for row in rows:
         cnt += 1
         rid, content = row["id"], row["content"]
         case_numbers = find_case_numbers(content)
@@ -78,8 +78,9 @@ def update_is_multi_case_number(client, account_id, database_id):
         update_sql_arr.append(update_sql)
 
 
-        if cnt % UPDATE_BATCH_SIZE == 0:
-            print(';'.join(update_sql_arr))
+        if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
+            print(f"进度: {cnt}/{len(rows)} ({cnt/len(rows)*100:.2f}%)")
+            # print(';'.join(update_sql_arr))
             try:
                 client.d1.database.query(
                     database_id=database_id,
