@@ -76,7 +76,9 @@ def update_is_multi_case_number(client, account_id, database_id):
         update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, case_number_arr = "{case_number_arr_json}" WHERE id = {rid}'
         update_sql_arr.append(update_sql)
 
+
         if cnt % UPDATE_BATCH_SIZE == 0:
+            print(';'.join(update_sql_arr))
             try:
                 client.d1.database.query(
                     database_id=database_id,
