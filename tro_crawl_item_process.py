@@ -6,8 +6,27 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 案号格式：如 25-cv-06628、2025-cv-06628（数字-cv-数字）
-CASE_NUMBER_PATTERN = re.compile(r"\b\d{2,4}-cv-\d{4,}\b", re.IGNORECASE)
+# 案号格式：如 25-cv-06628、2025-cv-06628（数字-cv-数字）；统一化为 2025-cv-06628（4位年-cv-5位号）
+CASE_NUMBER_PATTERN = re.compile(r"\b(\d{2,4})-cv-(\d+)\b", re.IGNORECASE)
+
+# 每批执行的 UPDATE 条数
+UPDATE_BATCH_SIZE = 50
+
+
+def normalize_case_number(raw: str) -> str:
+    """将案号统一为 2025-cv-06628 格式：4 位年份 + -cv- + 5 位数字（前导零）。"""
+    m = CASE_NUMBER_PATTERN.fullmatch(raw.strip())
+    if not m:
+        return raw
+    year_str, num_str = m.group(1), m.group(2)
+    # 年份：2 位按 20xx，3/4 位前补零到 4 位
+    if len(year_str) == 2:
+        year = "20" + year_str
+    else:
+        year = year_str.zfill(4)
+    # 案号数字：前导零补足 5 位
+    num = num_str.zfill(5)
+    return f"{year}-cv-{num}"
 
 def select_crawl_item_content(client, account_id, database_id):
     """执行 SQL：从 tro_crawl_item_tb 查询 id 与 title+content 拼接内容，返回结果列表。"""
@@ -29,34 +48,55 @@ def select_crawl_item_content(client, account_id, database_id):
 
 
 def find_case_numbers(content: str):
-    """在 content 中匹配所有案号（如 25-cv-06628、2025-cv-06628），返回去重后的列表。"""
+    """在 content 中匹配所有案号，统一为 2025-cv-06628 格式后去重返回。"""
     if not content:
         return []
-    return list(dict.fromkeys(CASE_NUMBER_PATTERN.findall(content)))
+    raw_list = CASE_NUMBER_PATTERN.findall(content)
+    # 每组 (year_part, num_part) 转为统一格式
+    normalized = [normalize_case_number(f"{y}-cv-{n}") for y, n in raw_list]
+    return list[str](dict.fromkeys(normalized))
 
 
 def update_is_multi_case_number(client, account_id, database_id):
-    """根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）。"""
+    """根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每批 50 条 SQL 一次执行）。"""
     rows = select_crawl_item_content(client, account_id, database_id)
     if not rows:
         return []
     results = []
-    update_sql = "UPDATE tro_crawl_item_tb SET is_multi_case_number = ?, case_number_arr = ? WHERE id = ?"
+    batch_data = []  # [(rid, is_multi, case_number_arr_json), ...]
+    one_sql = "UPDATE tro_crawl_item_tb SET is_multi_case_number = ?, case_number_arr = ? WHERE id = ?"
     for row in rows:
         rid, content = row["id"], row["content"]
         case_numbers = find_case_numbers(content)
         is_multi = "1" if len(case_numbers) >= 2 else "0"
         case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
         results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_numbers})
+        batch_data.append((rid, is_multi, case_number_arr_json))
+    total = len(batch_data)
+    num_batches = (total + UPDATE_BATCH_SIZE - 1) // UPDATE_BATCH_SIZE
+    for i in range(0, len(batch_data), UPDATE_BATCH_SIZE):
+        chunk = batch_data[i : i + UPDATE_BATCH_SIZE]
+        batch_idx = i // UPDATE_BATCH_SIZE + 1
+        done = min(i + UPDATE_BATCH_SIZE, total)
+        print(f"进度: 第 {batch_idx}/{num_batches} 批，已处理 {done}/{total} 条")
+        sql_batch = (one_sql + "; ") * len(chunk)
+        sql_batch = sql_batch.rstrip("; ")
+        params = []
+        for rid, is_m, arr in chunk:
+            params.extend([is_m, arr, rid])
         try:
             client.d1.database.query(
                 database_id=database_id,
                 account_id=account_id,
-                sql=update_sql,
-                params=[is_multi, case_number_arr_json, rid],
+                sql=sql_batch,
+                params=params,
             )
         except Exception as e:
-            results[-1]["error"] = str(e)
+            err_msg = str(e)
+            print(f"  本批失败: {err_msg}")
+            for r in results[i : i + len(chunk)]:
+                r["error"] = err_msg
+    print(f"完成: 共 {total} 条")
     return results
 
 def main():
