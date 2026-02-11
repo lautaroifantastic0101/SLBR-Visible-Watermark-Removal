@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import re
 from dotenv import load_dotenv
@@ -36,41 +37,47 @@ def find_case_numbers(content: str):
 
 
 def update_is_multi_case_number(client, account_id, database_id):
-    """根据爬取内容中案号数量判断是否多个案号，并批量更新 is_multi_case_number 字段。"""
+    """根据爬取内容中案号数量判断是否多个案号，并批量更新 is_multi_case_number、case_number_arr 字段。"""
     rows = select_crawl_item_content(client, account_id, database_id)
     if not rows:
         return []
-    # 先计算每条记录的案号与 is_multi，并收集结果
+    # 先计算每条记录的案号、is_multi、case_number_arr(JSON)，并收集结果
     results = []
-    id_to_value = []  # [(id, is_multi), ...]
+    id_to_value = []  # [(id, is_multi, case_number_arr_json), ...]
     for row in rows:
         rid, content = row["id"], row["content"]
         case_numbers = find_case_numbers(content)
         is_multi = "1" if len(case_numbers) >= 2 else "0"
+        case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
         results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_numbers})
-    print(results)
-    #     id_to_value.append((rid, is_multi))
-    # # 批量 UPDATE：CASE id WHEN ? THEN ? ... END WHERE id IN (?, ...)
-    # case_parts = [" WHEN ? THEN ?"] * len(id_to_value)
-    # case_sql = "".join(case_parts)
-    # placeholders = ", ".join(["?"] * len(id_to_value))
-    # update_sql = f"UPDATE tro_crawl_item_tb SET is_multi_case_number = CASE id{case_sql} END WHERE id IN ({placeholders})"
-    # params = []
-    # for rid, val in id_to_value:
-    #     params.extend([rid, val])
-    # params.extend([rid for rid, _ in id_to_value])
-    # try:
-    #     client.d1.database.query(
-    #         database_id=database_id,
-    #         account_id=account_id,
-    #         sql=update_sql,
-    #         params=params,
-    #     )
-    # except Exception as e:
-    #     err_msg = str(e)
-    #     for r in results:
-    #         r["error"] = err_msg
-    # return results
+        id_to_value.append((rid, is_multi, case_number_arr_json))
+    # 批量 UPDATE：同时更新 is_multi_case_number 与 case_number_arr
+    case_part = " WHEN ? THEN ?" * len(id_to_value)
+    placeholders = ", ".join(["?"] * len(id_to_value))
+    update_sql = (
+        f"UPDATE tro_crawl_item_tb SET "
+        f"is_multi_case_number = CASE id{case_part} END, "
+        f"case_number_arr = CASE id{case_part} END "
+        f"WHERE id IN ({placeholders})"
+    )
+    params = []
+    for rid, is_m, arr in id_to_value:
+        params.extend([rid, is_m])
+    for rid, _, arr in id_to_value:
+        params.extend([rid, arr])
+    params.extend([rid for rid, _, _ in id_to_value])
+    try:
+        client.d1.database.query(
+            database_id=database_id,
+            account_id=account_id,
+            sql=update_sql,
+            params=params,
+        )
+    except Exception as e:
+        err_msg = str(e)
+        for r in results:
+            r["error"] = err_msg
+    return results
 
 def main():
     parser = argparse.ArgumentParser(description="tro_crawl_item 查询与处理")
@@ -89,7 +96,7 @@ def main():
     from cloudflare import Cloudflare
     client = Cloudflare(api_token=token)
     result = update_is_multi_case_number(client, account_id, database_id)
-    # print(f"共处理 {len(result)} 条")
+    print(f"共处理 {len(result)} 条")
     # for row in result:
     #     cases = row.get("case_numbers", [])
     #     multi = row.get("is_multi_case_number", "")

@@ -13,5 +13,15 @@ CREATE TABLE
         source_type TEXT DEFAULT 'CifTRONewsItem',
         extract_case_number TEXT,
         extract_court TEXT,
-        is_multi_case_number TEXT
+        is_multi_case_number TEXT,
+        -- case_number_arr: 从 content 中匹配出的案号列表，存为 JSON 数组字符串
+        case_number_arr TEXT
     );
+
+    -- 若表已存在，仅新增字段时执行：
+    -- ALTER TABLE tro_crawl_item_tb ADD COLUMN case_number_arr TEXT;
+
+
+
+
+    
