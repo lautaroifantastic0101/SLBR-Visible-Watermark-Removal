@@ -2,9 +2,9 @@ import argparse
 import json
 import os
 import re
-from dotenv import load_dotenv
+from cloudflare import Cloudflare
 
-load_dotenv()
+
 
 # 案号格式：如 25-cv-06628、2025-cv-06628（数字-cv-数字）；统一化为 2025-cv-06628（4位年-cv-5位号）
 CASE_NUMBER_PATTERN = re.compile(r"\b(\d{2,4})-cv-(\d+)\b", re.IGNORECASE)
@@ -58,45 +58,35 @@ def find_case_numbers(content: str):
 
 
 def update_is_multi_case_number(client, account_id, database_id):
-    """根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每批 50 条 SQL 一次执行）。"""
+    """根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）。"""
     rows = select_crawl_item_content(client, account_id, database_id)
     if not rows:
         return []
     results = []
-    batch_data = []  # [(rid, is_multi, case_number_arr_json), ...]
-    one_sql = "UPDATE tro_crawl_item_tb SET is_multi_case_number = ?, case_number_arr = ? WHERE id = ?"
+    update_sql = "UPDATE tro_crawl_item_tb SET is_multi_case_number = ?, case_number_arr = ? WHERE id = ?"
+    cnt = 0
+    update_sql_arr = []
     for row in rows:
+        cnt += 1
         rid, content = row["id"], row["content"]
         case_numbers = find_case_numbers(content)
         is_multi = "1" if len(case_numbers) >= 2 else "0"
         case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
         results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_numbers})
-        batch_data.append((rid, is_multi, case_number_arr_json))
-    total = len(batch_data)
-    num_batches = (total + UPDATE_BATCH_SIZE - 1) // UPDATE_BATCH_SIZE
-    for i in range(0, len(batch_data), UPDATE_BATCH_SIZE):
-        chunk = batch_data[i : i + UPDATE_BATCH_SIZE]
-        batch_idx = i // UPDATE_BATCH_SIZE + 1
-        done = min(i + UPDATE_BATCH_SIZE, total)
-        print(f"进度: 第 {batch_idx}/{num_batches} 批，已处理 {done}/{total} 条")
-        sql_batch = (one_sql + "; ") * len(chunk)
-        sql_batch = sql_batch.rstrip("; ")
-        params = []
-        for rid, is_m, arr in chunk:
-            params.extend([is_m, arr, rid])
-        try:
-            client.d1.database.query(
-                database_id=database_id,
-                account_id=account_id,
-                sql=sql_batch,
-                params=params,
-            )
-        except Exception as e:
-            err_msg = str(e)
-            print(f"  本批失败: {err_msg}")
-            for r in results[i : i + len(chunk)]:
-                r["error"] = err_msg
-    print(f"完成: 共 {total} 条")
+        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, case_number_arr = "{case_number_arr_json}" WHERE id = {rid}'
+        update_sql_arr.append(update_sql)
+
+        if cnt % UPDATE_BATCH_SIZE == 0:
+            try:
+                client.d1.database.batch(
+                    database_id=database_id,
+                    account_id=account_id,
+                    sql=';'.join(update_sql_arr),
+                )
+            except Exception as e:
+                results[-1]["error"] = str(e)
+            finally:
+                update_sql_arr = []
     return results
 
 def main():
@@ -113,7 +103,6 @@ def main():
         print("缺少 D1 配置，请提供 --cf_d1_* 或环境变量 CF_D1_API_TOKEN / CF_D1_ACCOUNT_ID / CF_D1_DATABASE_ID")
         return
 
-    from cloudflare import Cloudflare
     client = Cloudflare(api_token=token)
     result = update_is_multi_case_number(client, account_id, database_id)
     print(f"共处理 {len(result)} 条")
