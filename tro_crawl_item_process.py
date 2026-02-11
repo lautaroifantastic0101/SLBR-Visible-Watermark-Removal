@@ -71,7 +71,8 @@ def update_is_multi_case_number(client, account_id, database_id):
         rid, content = row["id"], row["content"]
         case_numbers = find_case_numbers(content)
         is_multi = "1" if len(case_numbers) >= 2 else "0"
-        case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
+        # case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
+        case_number_arr_json = ','.join(case_numbers)
         results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_numbers})
         update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, case_number_arr = "{case_number_arr_json}" WHERE id = {rid}'
         update_sql_arr.append(update_sql)
