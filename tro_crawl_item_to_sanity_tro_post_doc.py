@@ -158,7 +158,7 @@ def _parse_brand_info(gemini_info,basic_info,timeline_info) -> str:
     
 
 
-def _parse_timeline_info(timeline_info) -> list[dict]:
+def _parse_timeline_info(timeline_info) -> str:
     """将时间线信息转为字典。"""
     timeline_ret = [] 
     progress = timeline_info and timeline_info.get("progress")
@@ -168,7 +168,7 @@ def _parse_timeline_info(timeline_info) -> list[dict]:
                 "date": item.get("date"),
                 "description": item.get("description")
             })
-    return timeline_ret
+    return json.dumps(timeline_ret)
 
 
 def row_to_tro_post_doc(row: dict) -> dict:
