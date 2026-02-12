@@ -1,5 +1,6 @@
 import argparse
 import json
+from numbers import Real
 import os
 import re
 from dotenv import load_dotenv
@@ -136,8 +137,8 @@ def _related_cases_list(val) -> list[str]:
     return []
 
 
-def _parse_brand_info(gemini_info,basic_info,timeline_info) -> dict:
-    """将品牌信息转为字典。"""
+def _parse_brand_info(gemini_info,basic_info,timeline_info) -> str:
+    """将品牌信息转为 JSON 字符串。"""
     brand_ret = {}
     gemini_brand = gemini_info and gemini_info.get("品牌方")
     basic_brand = basic_info and basic_info.get("brand")
@@ -153,9 +154,8 @@ def _parse_brand_info(gemini_info,basic_info,timeline_info) -> dict:
 
     brand_ret["name"] = gemini_brand or basic_brand 
     brand_ret["contact"] = ''
+    return json.dumps(brand_ret, ensure_ascii=False) if brand_ret else ''
     
-        
-    return brand_ret  
 
 
 def _parse_timeline_info(timeline_info) -> list[dict]:
@@ -209,6 +209,8 @@ def row_to_tro_post_doc(row: dict) -> dict:
     if not related and row.get("case_number_arr"):
         related = _related_cases_list(row["case_number_arr"])
     related = [x for x in related if x] or None
+    related = json.dumps(related)
+    
 
     # # content：品牌方信息 + 风险提示（gemini）+ 可选 timeline 摘要
     # content_parts = []
@@ -245,7 +247,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "relatedCases": related,
         "goodsCategories": goods_categories,
         "images": json.dumps(images, ensure_ascii=False) if images else None,
-        "caseTimeLine": timeline_info,
+        "timeline": timeline_info,
     }
     return {k: v for k, v in doc.items() if v is not None}
 
