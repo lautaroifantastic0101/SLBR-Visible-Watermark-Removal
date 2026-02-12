@@ -198,6 +198,25 @@ def row_to_tro_post_doc(row: dict) -> dict:
         types = [t.strip() for t in img_type_arr.split(",") if t.strip()] if img_type_arr else []
         images = [{"url": urls[i], "type": types[i] if i < len(types) else ""} for i in range(len(urls))]
 
+    # caseTimeLine：来自 case_detail_info2 (timeline) 的 full_timelines，date 转为 YYYY-MM-DD
+    case_time_line = None
+    if timeline and timeline.get("full_timelines"):
+        try:
+            case_time_line = []
+            for i, t in enumerate(timeline.get("full_timelines") or []):
+                d = (t.get("date") or "").strip()
+                desc = (t.get("description") or "").strip()
+                norm_date = _normalize_date(d) if d else None
+                case_time_line.append({
+                    "_key": str(i),
+                    "date": norm_date or d,
+                    "description": desc or "",
+                })
+            if not case_time_line:
+                case_time_line = None
+        except (TypeError, KeyError):
+            pass
+
     doc = {
         "caseNumber": case_number,
         "title": title,
@@ -212,6 +231,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "relatedCases": related,
         "goodsCategories": goods_categories,
         "images": json.dumps(images, ensure_ascii=False) if images else None,
+        "caseTimeLine": case_time_line,
     }
     return {k: v for k, v in doc.items() if v is not None}
 
@@ -260,6 +280,10 @@ def main():
     token = args.cf_d1_api_token or os.getenv("CF_D1_API_TOKEN")
     account_id = args.cf_d1_account_id or os.getenv("CF_D1_ACCOUNT_ID")
     database_id = args.cf_d1_database_id or os.getenv("CF_D1_DATABASE_ID")
+    sanity_project = args.sanity_project_id or os.getenv("SANITY_PROJECT_ID")
+    sanity_dataset = args.sanity_dataset or os.getenv("SANITY_DATASET") or "production"
+    sanity_token = args.sanity_token or os.getenv("SANITY_TOKEN")
+
     if not all([token, account_id, database_id]):
         print("缺少 D1 配置，请提供 --cf_d1_* 或环境变量 CF_D1_API_TOKEN / CF_D1_ACCOUNT_ID / CF_D1_DATABASE_ID")
         return
@@ -273,9 +297,6 @@ def main():
     if len(rows) > 5:
         print(f"  ... 其余 {len(rows) - 5} 条")
     if args.upload and rows:
-        sanity_project = args.sanity_project_id or os.getenv("SANITY_PROJECT_ID")
-        sanity_dataset = args.sanity_dataset or os.getenv("SANITY_DATASET") or "production"
-        sanity_token = args.sanity_token or os.getenv("SANITY_TOKEN")
         if not sanity_project or not sanity_token:
             print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
             return rows

@@ -75,6 +75,49 @@ export default defineType({
       type: 'text',
       description: 'JSON string of images data',
     }),
+    defineField({
+      name: 'timeline',
+      title: 'Timeline',
+      type: 'array',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'timelineEvent',
+          fields: [
+            {name: 'date', type: 'date', title: 'Date'},
+            {name: 'description', type: 'text', title: 'Description'},
+          ],
+          preview: {
+            select: {description: 'description', date: 'date'},
+            prepare({description, date}) {
+              return {title: description ? description.slice(0, 40) + (description.length > 40 ? '…' : '') : 'Event', subtitle: date}
+            },
+          },
+        }),
+      ],
+    }),
+    defineField({
+      name: 'caseTimeLine',
+      title: 'Case Time Line',
+      type: 'array',
+      description: '案件时间线，来自 Tro61 full_timelines',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'caseTimelineEvent',
+          fields: [
+            {name: 'date', type: 'date', title: 'Date'},
+            {name: 'description', type: 'text', title: 'Description'},
+          ],
+          preview: {
+            select: {description: 'description', date: 'date'},
+            prepare({description, date}) {
+              return {title: description ? description.slice(0, 40) + (description.length > 40 ? '…' : '') : 'Event', subtitle: date}
+            },
+          },
+        }),
+      ],
+    }),
   ],
 
   preview: {
