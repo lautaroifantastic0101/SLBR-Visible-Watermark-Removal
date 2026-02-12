@@ -144,12 +144,12 @@ def _parse_brand_info(gemini_info,basic_info,timeline_info) -> dict:
 
     
     if gemini_info and gemini_info.get("品牌方信息"):
-        brand_info = json.loads(gemini_info.get("品牌方信息"))
+        brand_info = gemini_info.get("品牌方信息")
         brand_ret["description"] = brand_info
-    elif basic_info and basic_info.get("brand"):
-        brand_info = json.loads(basic_info.get("brand"))
-    elif timeline_info and timeline_info.get("brand"):
-        brand_info = json.loads(timeline_info.get("brand"))
+    # elif basic_info and basic_info.get("brand"):
+    #     brand_info = json.loads(basic_info.get("brand"))
+    # elif timeline_info and timeline_info.get("brand"):
+    #     brand_info = json.loads(timeline_info.get("brand"))
 
     brand_ret["name"] = gemini_brand or basic_brand 
     brand_ret["contact"] = ''
