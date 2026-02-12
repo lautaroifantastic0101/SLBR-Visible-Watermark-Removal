@@ -222,14 +222,19 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # content = "\n\n".join(content_parts) if content_parts else _str(crawl.get("content"))
     content = ''
 
-    # 图片：new_url_arr / img_type_arr
-    images = []
+    # 图片：new_url_arr / img_type_arr，按 type 合并为 {"type_a": ["url1", "url2"], "type_b": ["url3"]}
+    images = {}
     new_url_arr = (row.get("new_url_arr") or "").strip()
     img_type_arr = (row.get("img_type_arr") or "").strip()
     if new_url_arr:
         urls = [u.strip() for u in new_url_arr.split(",") if u.strip()]
         types = [t.strip() for t in img_type_arr.split(",") if t.strip()] if img_type_arr else []
-        images = [{"url": urls[i], "type": types[i] if i < len(types) else ""} for i in range(len(urls))]
+        for i in range(len(urls)):
+            t = types[i] if i < len(types) else ""
+            key = t if t else "default"
+            if key not in images:
+                images[key] = []
+            images[key].append(urls[i])
 
 
 
@@ -246,7 +251,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "courtInfo": court_info,
         "relatedCases": related,
         "goodsCategories": goods_categories,
-        "images": json.dumps(images, ensure_ascii=False) if images else None,
+        "images": json.dumps(images, ensure_ascii=False) if images else None,  # {"type_a": ["url1","url2"], ...}
         "timeline": timeline_info,
     }
     return {k: v for k, v in doc.items() if v is not None}
