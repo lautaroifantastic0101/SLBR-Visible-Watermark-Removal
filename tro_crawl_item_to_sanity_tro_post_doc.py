@@ -119,7 +119,10 @@ def _normalize_date(s: str):
 
 
 def _related_cases_list(val) -> list[str]:
-    """将 关联案件 / case_number_arr 转为字符串数组。"""
+    """
+    主要元素：name\contact\description 
+    将 关联案件 / case_number_arr 转为字符串数组。"""
+
     if not val:
         return []
     if isinstance(val, list):
@@ -133,6 +136,41 @@ def _related_cases_list(val) -> list[str]:
     return []
 
 
+def _parse_brand_info(gemini_info,basic_info,timeline_info) -> dict:
+    """将品牌信息转为字典。"""
+    brand_ret = {}
+    gemini_brand = gemini_info and gemini_info.get("品牌方")
+    basic_brand = basic_info and basic_info.get("brand")
+
+    
+    if gemini_info and gemini_info.get("品牌方信息"):
+        brand_info = json.loads(gemini_info.get("品牌方信息"))
+        brand_ret["description"] = brand_info
+    elif basic_info and basic_info.get("brand"):
+        brand_info = json.loads(basic_info.get("brand"))
+    elif timeline_info and timeline_info.get("brand"):
+        brand_info = json.loads(timeline_info.get("brand"))
+
+    brand_ret["name"] = gemini_brand or basic_brand 
+    brand_ret["contact"] = ''
+    
+        
+    return brand_ret  
+
+
+def _parse_timeline_info(timeline_info) -> list[dict]:
+    """将时间线信息转为字典。"""
+    timeline_ret = [] 
+    progress = timeline_info and timeline_info.get("progress")
+    if progress:
+        for item in progress:
+            timeline_ret.append({
+                "date": item.get("date"),
+                "description": item.get("description")
+            })
+    return timeline_ret
+
+
 def row_to_tro_post_doc(row: dict) -> dict:
     """综合 row（a 表 + case_detail_info + case_detail_info2 + gemini_ai_resp）得到 Sanity tro_post 文档。"""
     # 1) gemini_ai_resp（见 tmp/gemini_ai_resp_sample.txt）：案件标题、案件编号、起诉日期、原告、律所、维权类型、品牌方、品牌方信息、涉及的商品类型、关联案件
@@ -140,7 +178,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 2) case_detail_info（b.crawl_item，见 tmp/basic_info_sample.json）：PgprintsTROItem - prosecution_time, case_number, law_firm, brand
     basic = _parse_json_text(row.get("case_detail_info") or "")
     # 3) case_detail_info2（c.crawl_item，见 tmp/timeline_info_sample.json）：Tro61TROItem - title, case_number, release_time, court, brand, law_firm, full_timelines
-    timeline = _parse_json_text(row.get("case_detail_info2") or "")
+    timeline_info = _parse_json_text(row.get("timeline_info") or "")
     # 4) a 表 crawl_item
     crawl = _parse_json_text(row.get("crawl_item") or "") or {}
 
@@ -151,17 +189,20 @@ def row_to_tro_post_doc(row: dict) -> dict:
         return s if s else default
 
     # 优先级：gemini > timeline > basic > crawl > row 直字段
-    case_number = _str(gemini and gemini.get("案件编号")) or _str(timeline and timeline.get("case_number")) or _str(basic and basic.get("case_number")) or _str(row.get("extract_case_number"))
-    title = _str(gemini and gemini.get("案件标题")) or _str(timeline and timeline.get("title")) or _str(crawl.get("title"))
-    law_date_raw = _str(gemini and gemini.get("起诉日期")) or _str(timeline and timeline.get("release_time")) or _str(basic and basic.get("prosecution_time")) or _str(crawl.get("lawDate") or crawl.get("law_date"))
+    case_number = _str(gemini and gemini.get("案件编号")) or _str(timeline_info and timeline_info.get("case_number")) or _str(basic and basic.get("case_number")) or _str(row.get("extract_case_number"))
+    title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
+    law_date_raw = _str(gemini and gemini.get("起诉日期")) or _str(timeline_info and timeline_info.get("release_time")) or _str(basic and basic.get("prosecution_time")) or _str(crawl.get("lawDate") or crawl.get("law_date"))
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
     law_from = _str(gemini and gemini.get("原告")) or _str(crawl.get("lawFrom") or crawl.get("law_from"))
-    law_firm = _str(gemini and gemini.get("律所")) or _str(timeline and timeline.get("law_firm")) or _str(basic and basic.get("law_firm")) or _str(crawl.get("lawFirm") or crawl.get("law_firm"))
+    law_firm = _str(gemini and gemini.get("律所")) or _str(timeline_info and timeline_info.get("law_firm")) or _str(basic and basic.get("law_firm")) or _str(crawl.get("lawFirm") or crawl.get("law_firm"))
     law_type = _str(gemini and gemini.get("维权类型")) or _str(crawl.get("lawType") or crawl.get("law_type"))
-    brand = _str(gemini and gemini.get("品牌方")) or _str(timeline and timeline.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
-    brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
-    court_info = _str(timeline and timeline.get("court")) or _str(row.get("extract_court"))
+    brand = _str(gemini and gemini.get("品牌方")) or _str(timeline_info and timeline_info.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
+    # brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
+    brand_info = _parse_brand_info(gemini,basic,timeline_info)
+    court_info = _str(timeline_info and timeline_info.get("court")) or _str(row.get("extract_court"))
     goods_categories = _str(gemini and gemini.get("涉及的商品类型")) or _str(crawl.get("goodsCategories") or crawl.get("goods_categories"))
+    timeline_info = _parse_timeline_info(timeline_info)
+
 
     # relatedCases：gemini 关联案件 > case_number_arr
     related = _related_cases_list(gemini and gemini.get("关联案件")) if gemini else []
@@ -175,18 +216,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         content_parts.append(brand_info)
     if gemini and _str(gemini.get("风险提示")):
         content_parts.append(_str(gemini.get("风险提示")))
-    if timeline and timeline.get("full_timelines"):
-        try:
-            lines = []
-            for t in (timeline["full_timelines"] or [])[:5]:
-                d = t.get("date") or ""
-                desc = (t.get("description") or "").strip()[:200]
-                if d or desc:
-                    lines.append(f"[{d}] {desc}")
-            if lines:
-                content_parts.append("时间线摘要：\n" + "\n".join(lines))
-        except (TypeError, KeyError):
-            pass
+
     content = "\n\n".join(content_parts) if content_parts else _str(crawl.get("content"))
 
     # 图片：new_url_arr / img_type_arr
@@ -198,24 +228,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         types = [t.strip() for t in img_type_arr.split(",") if t.strip()] if img_type_arr else []
         images = [{"url": urls[i], "type": types[i] if i < len(types) else ""} for i in range(len(urls))]
 
-    # caseTimeLine：来自 case_detail_info2 (timeline) 的 full_timelines，date 转为 YYYY-MM-DD
-    case_time_line = None
-    if timeline and timeline.get("full_timelines"):
-        try:
-            case_time_line = []
-            for i, t in enumerate(timeline.get("full_timelines") or []):
-                d = (t.get("date") or "").strip()
-                desc = (t.get("description") or "").strip()
-                norm_date = _normalize_date(d) if d else None
-                case_time_line.append({
-                    "_key": str(i),
-                    "date": norm_date or d,
-                    "description": desc or "",
-                })
-            if not case_time_line:
-                case_time_line = None
-        except (TypeError, KeyError):
-            pass
+
 
     doc = {
         "caseNumber": case_number,
@@ -231,7 +244,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "relatedCases": related,
         "goodsCategories": goods_categories,
         "images": json.dumps(images, ensure_ascii=False) if images else None,
-        "caseTimeLine": case_time_line,
+        "caseTimeLine": timeline_info,
     }
     return {k: v for k, v in doc.items() if v is not None}
 
