@@ -218,6 +218,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     #     content_parts.append(_str(gemini.get("风险提示")))
 
     # content = "\n\n".join(content_parts) if content_parts else _str(crawl.get("content"))
+    content = ''
 
     # 图片：new_url_arr / img_type_arr
     images = []
