@@ -210,14 +210,14 @@ def row_to_tro_post_doc(row: dict) -> dict:
         related = _related_cases_list(row["case_number_arr"])
     related = [x for x in related if x] or None
 
-    # content：品牌方信息 + 风险提示（gemini）+ 可选 timeline 摘要
-    content_parts = []
-    if brand_info:
-        content_parts.append(brand_info)
-    if gemini and _str(gemini.get("风险提示")):
-        content_parts.append(_str(gemini.get("风险提示")))
+    # # content：品牌方信息 + 风险提示（gemini）+ 可选 timeline 摘要
+    # content_parts = []
+    # if brand_info:
+    #     content_parts.append(brand_info)
+    # if gemini and _str(gemini.get("风险提示")):
+    #     content_parts.append(_str(gemini.get("风险提示")))
 
-    content = "\n\n".join(content_parts) if content_parts else _str(crawl.get("content"))
+    # content = "\n\n".join(content_parts) if content_parts else _str(crawl.get("content"))
 
     # 图片：new_url_arr / img_type_arr
     images = []
