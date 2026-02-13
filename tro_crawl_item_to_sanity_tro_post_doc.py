@@ -200,6 +200,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
     if brand and not brand.isupper():
         brand = brand.title()
+    brand = 'Elaine Kay Maier' # 用作测试 
 
     # brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
     brand_info = _parse_brand_info(gemini,basic,timeline_info)
