@@ -153,7 +153,7 @@ def _parse_brand_info(gemini_info,basic_info,timeline_info) -> str:
                 v_str = str(v).strip()
                 if v_str:
                     desc_parts.append(f"{k}: {v_str}")
-            brand_info = "。".join(desc_parts)
+            brand_info = "。\n".join(desc_parts)
         brand_ret["description"] = brand_info
     # elif basic_info and basic_info.get("brand"):
     #     brand_info = json.loads(basic_info.get("brand"))
