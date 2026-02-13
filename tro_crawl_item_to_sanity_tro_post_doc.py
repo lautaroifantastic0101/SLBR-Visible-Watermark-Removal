@@ -146,22 +146,14 @@ def _parse_brand_info(gemini_info,basic_info,timeline_info) -> str:
     
     if gemini_info and gemini_info.get("品牌方信息"):
         brand_info = gemini_info.get("品牌方信息")
-        if brand_info and brand_info.startswith(('{', '[')) and brand_info.endswith(('}', ']')):
-            try:
-                brand_info = brand_info.replace('\'', '"')
-                brand_info = json.loads(brand_info)
-                # 将brand_info信息进行合并；key 和value 组装成为一句话。
-                if brand_info and isinstance(brand_info, dict):
-                    # 组装 key 和 value 为一句话（如“key1: value1, key2: value2”）
-                    desc_parts = []
-                    for k, v in brand_info.items():
-                        v_str = str(v).strip()
-                        if v_str:
-                            desc_parts.append(f"{k}: {v_str}")
-                    brand_info = "，".join(desc_parts)
-        
-            except Exception as e:
-                print(f"error: {e} . {brand_info}")
+        if brand_info and isinstance(brand_info, dict):
+            # 组装 key 和 value 为一句话（如“key1: value1, key2: value2”）
+            desc_parts = []
+            for k, v in brand_info.items():
+                v_str = str(v).strip()
+                if v_str:
+                    desc_parts.append(f"{k}: {v_str}")
+            brand_info = "。".join(desc_parts)
         brand_ret["description"] = brand_info
     # elif basic_info and basic_info.get("brand"):
     #     brand_info = json.loads(basic_info.get("brand"))
