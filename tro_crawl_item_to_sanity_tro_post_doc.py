@@ -216,6 +216,8 @@ def row_to_tro_post_doc(row: dict) -> dict:
         law_from = law_from.title()
     
     law_firm = _str(gemini and gemini.get("律所")) or _str(timeline_info and timeline_info.get("law_firm")) or _str(basic and basic.get("law_firm")) or _str(crawl.get("lawFirm") or crawl.get("law_firm"))
+    if law_firm and not law_firm.isupper():
+        law_firm = law_firm.title() 
     law_type = _str(gemini and gemini.get("维权类型")) or _str(crawl.get("lawType") or crawl.get("law_type"))
     brand = _str(gemini and gemini.get("品牌方")) or _str(timeline_info and timeline_info.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
     # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
