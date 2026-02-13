@@ -76,7 +76,7 @@ def run_select_join(client, account_id, database_id, source_type: str):
     )
     if not resp.result or not resp.result[0].results:
         return []
-    return [dict(row) for row in resp.result[0].results][:5]
+    return [dict(row) for row in resp.result[0].results]
 
 
 def _parse_json_text(s: str):
@@ -344,8 +344,8 @@ def main():
     print(f"共 {len(rows)} 条")
     for i, row in enumerate(rows[:100]):
         print(f"  [{i+1}] id={row.get('id')}, origin_article_id={row.get('origin_article_id')}, extract_case_number={row.get('extract_case_number')}")
-    if len(rows) > 5:
-        print(f"  ... 其余 {len(rows) - 5} 条")
+    # if len(rows) > 5:
+    #     print(f"  ... 其余 {len(rows) - 5} 条")
     if args.upload and rows:
         if not sanity_project or not sanity_token:
             print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
