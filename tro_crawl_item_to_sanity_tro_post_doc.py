@@ -215,7 +215,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         try:
             goods_categories = json.loads(goods_categories)
         except Exception as e:
-            print(f"error: {e}")
+            print(f"error: {e} . {goods_categories}")
         
     
     
