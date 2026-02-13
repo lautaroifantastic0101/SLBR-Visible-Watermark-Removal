@@ -214,6 +214,8 @@ def row_to_tro_post_doc(row: dict) -> dict:
     if goods_categories and goods_categories.startswith(('{', '[')) and goods_categories.endswith(('}', ']')):
         try:
             goods_categories = json.loads(goods_categories.replace('\'', '"'))
+            if type(goods_categories) is list:
+                goods_categories = ','.join(goods_categories)
         except Exception as e:
             print(f"error: {e} . {case_number} {goods_categories}")
         
