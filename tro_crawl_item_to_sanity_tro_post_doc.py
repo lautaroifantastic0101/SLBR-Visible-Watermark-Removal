@@ -267,7 +267,7 @@ def create_sanity_doc(rows: list, project_id: str, dataset: str, token: str, dry
     errors = []
     for i, row in enumerate(rows):
         doc = row_to_tro_post_doc(row)
-        payload = {"mutations": [{"create": {"_type": "tro_post", **doc}}]}
+        payload = {"mutations": [{"createOrReplace": {"_type": "tro_post", **doc}}]}
         if dry_run:
             print(f"  [dry_run] {i+1} caseNumber={doc.get('caseNumber')} title={doc.get('title', '')[:40]}...")
             created += 1
