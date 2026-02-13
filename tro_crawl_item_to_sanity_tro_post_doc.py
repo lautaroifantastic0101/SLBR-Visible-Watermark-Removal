@@ -3,7 +3,10 @@ import json
 from numbers import Real
 import os
 import re
+from typing import Any
 from dotenv import load_dotenv
+
+from src.utils.parse_utils import extract_us_state
 
 load_dotenv()
 
@@ -76,7 +79,7 @@ def run_select_join(client, account_id, database_id, source_type: str):
     )
     if not resp.result or not resp.result[0].results:
         return []
-    return [dict(row) for row in resp.result[0].results]
+    return [dict(row) for row in resp.result[0].results][:20]
 
 
 def _parse_json_text(s: str):
@@ -120,9 +123,7 @@ def _normalize_date(s: str):
 
 
 def _related_cases_list(val) -> list[str]:
-    """
-    主要元素：name\contact\description 
-    将 关联案件 / case_number_arr 转为字符串数组。"""
+    """将 关联案件 / case_number_arr 转为字符串数组。"""
 
     if not val:
         return []
@@ -135,6 +136,7 @@ def _related_cases_list(val) -> list[str]:
         except (json.JSONDecodeError, TypeError):
             return [x.strip() for x in val.split(",") if x.strip()]
     return []
+
 
 
 def _parse_brand_info(gemini_info,basic_info,timeline_info) -> str:
@@ -163,8 +165,10 @@ def _parse_brand_info(gemini_info,basic_info,timeline_info) -> str:
     brand_ret["name"] = gemini_brand or basic_brand 
     brand_ret["contact"] = ''
     return json.dumps(brand_ret, ensure_ascii=False) if brand_ret else ''
-    
 
+def _case_number_year_to_2_digits(cn):
+    # 替换案号中的4位年份为2位（仅限于20开头，避免非年份被处理）
+    return re.sub(r'(20)(\d{2})([^\d])', lambda m: m.group(2) + m.group(3), cn) if cn else cn
 
 def _parse_timeline_info(timeline_info) -> str:
     """将时间线信息转为字典。"""
@@ -198,6 +202,10 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
     # 优先级：gemini > timeline > basic > crawl > row 直字段
     case_number = _str(gemini and gemini.get("案件编号")) or _str(timeline_info and timeline_info.get("case_number")) or _str(basic and basic.get("case_number")) or _str(row.get("extract_case_number"))
+    # 将案号(case_number)中的年份（4位数）替换为2位数
+
+
+    case_number = _case_number_year_to_2_digits(case_number)
     title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
     law_date_raw = _str(gemini and gemini.get("起诉日期")) or _str(timeline_info and timeline_info.get("release_time")) or _str(basic and basic.get("prosecution_time")) or _str(crawl.get("lawDate") or crawl.get("law_date"))
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
@@ -218,6 +226,8 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
     brand_info = _parse_brand_info(gemini,basic,timeline_info)
     court_info = _str(timeline_info and timeline_info.get("court")) or _str(row.get("extract_court"))
+    court_state = extract_us_state(court_info) if court_info else None
+
     goods_categories = _str(gemini and gemini.get("涉及的商品类型")) or _str(crawl.get("goodsCategories") or crawl.get("goods_categories"))
     if goods_categories and goods_categories.startswith(('{', '[')) and goods_categories.endswith(('}', ']')):
         try:
@@ -227,8 +237,6 @@ def row_to_tro_post_doc(row: dict) -> dict:
         except Exception as e:
             print(f"error: {e} . {case_number} {goods_categories}")
         
-    
-    
     timeline_info = _parse_timeline_info(timeline_info)
 
 
@@ -282,6 +290,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "goodsCategories": goods_categories,
         "images": json.dumps(images, ensure_ascii=False) if images else None,  # {"type_a": ["url1","url2"], ...}
         "timeline": timeline_info,
+        "court_state":court_state
     }
     return {k: v for k, v in doc.items() if v is not None}
 
@@ -342,7 +351,7 @@ def main():
     client = Cloudflare(api_token=token)
     rows = run_select_join(client, account_id, database_id, args.source_type)
     print(f"共 {len(rows)} 条")
-    for i, row in enumerate(rows[:100]):
+    for i, row in enumerate[dict[Any, Any]](rows):
         print(f"  [{i+1}] id={row.get('id')}, origin_article_id={row.get('origin_article_id')}, extract_case_number={row.get('extract_case_number')}")
     # if len(rows) > 5:
     #     print(f"  ... 其余 {len(rows) - 5} 条")
