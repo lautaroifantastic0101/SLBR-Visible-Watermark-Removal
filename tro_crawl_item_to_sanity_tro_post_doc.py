@@ -213,7 +213,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
     if brand and not brand.isupper():
         brand = brand.title()
-    brand = 'Elaine Kay Maier' # 用作测试 
+    # brand = 'Elaine Kay Maier' # 用作测试 
 
     # brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
     brand_info = _parse_brand_info(gemini,basic,timeline_info)
@@ -342,7 +342,7 @@ def main():
     client = Cloudflare(api_token=token)
     rows = run_select_join(client, account_id, database_id, args.source_type)
     print(f"共 {len(rows)} 条")
-    for i, row in enumerate(rows[:5]):
+    for i, row in enumerate(rows[:100]):
         print(f"  [{i+1}] id={row.get('id')}, origin_article_id={row.get('origin_article_id')}, extract_case_number={row.get('extract_case_number')}")
     if len(rows) > 5:
         print(f"  ... 其余 {len(rows) - 5} 条")
