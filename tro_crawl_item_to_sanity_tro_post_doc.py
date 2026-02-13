@@ -212,7 +212,10 @@ def row_to_tro_post_doc(row: dict) -> dict:
     court_info = _str(timeline_info and timeline_info.get("court")) or _str(row.get("extract_court"))
     goods_categories = _str(gemini and gemini.get("涉及的商品类型")) or _str(crawl.get("goodsCategories") or crawl.get("goods_categories"))
     if goods_categories and goods_categories.startswith(('{', '[')) and goods_categories.endswith(('}', ']')):
-        goods_categories = json.loads(goods_categories)
+        try:
+            goods_categories = json.loads(goods_categories)
+        except Exception as e:
+            print(f"error: {e}")
         
     
     
