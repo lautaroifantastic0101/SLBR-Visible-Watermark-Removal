@@ -292,7 +292,8 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "goodsCategories": goods_categories,
         "images": json.dumps(images, ensure_ascii=False) if images else None,  # {"type_a": ["url1","url2"], ...}
         "timeline": timeline_info,
-        "courtState":court_state
+        "courtState":court_state,
+        "sourceType": row.get("source_type")
     }
     return {k: v for k, v in doc.items() if v is not None}
 
