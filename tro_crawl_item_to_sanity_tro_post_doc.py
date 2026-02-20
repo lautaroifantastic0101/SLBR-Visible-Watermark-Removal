@@ -174,7 +174,7 @@ def _case_number_year_to_2_digits(cn):
 def _parse_timeline_info(timeline_info) -> str:
     """将时间线信息转为字典。"""
     timeline_ret = [] 
-    print('parse_timeline', timeline_info)
+    # print('parse_timeline', timeline_info)
     progress = timeline_info and timeline_info.get("progress")
     if progress:
         for item in progress:
@@ -186,7 +186,7 @@ def _parse_timeline_info(timeline_info) -> str:
 
 
 def _parse_progress(timeline_info) -> str:
-    print('parse_progress', timeline_info)
+    # print('parse_progress', timeline_info)
     full_timelines = timeline_info and timeline_info.get("full_timelines")
     status = "审判中"
     if full_timelines:
@@ -254,7 +254,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         except Exception as e:
             print(f"error: {e} . {case_number} {goods_categories}")
         
-    timeline_info = _parse_timeline_info(timeline_info)
+    timelines = _parse_timeline_info(timeline_info)
     case_progress = _parse_progress(timeline_info)
 
 
@@ -307,7 +307,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "relatedCases": related,
         "goodsCategories": goods_categories,
         "images": json.dumps(images, ensure_ascii=False) if images else None,  # {"type_a": ["url1","url2"], ...}
-        "timeline": timeline_info,
+        "timeline": timelines,
         "case_progress": case_progress,
         "courtState":court_state,
         "sourceType": row.get("source_type")
