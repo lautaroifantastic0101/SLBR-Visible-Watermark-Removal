@@ -174,6 +174,7 @@ def _case_number_year_to_2_digits(cn):
 def _parse_timeline_info(timeline_info) -> str:
     """将时间线信息转为字典。"""
     timeline_ret = [] 
+    print('parse_timeline', timeline_info)
     progress = timeline_info and timeline_info.get("progress")
     if progress:
         for item in progress:
@@ -185,6 +186,7 @@ def _parse_timeline_info(timeline_info) -> str:
 
 
 def _parse_progress(timeline_info) -> str:
+    print('parse_progress', timeline_info)
     full_timelines = timeline_info and timeline_info.get("full_timelines")
     status = "审判中"
     if full_timelines:
