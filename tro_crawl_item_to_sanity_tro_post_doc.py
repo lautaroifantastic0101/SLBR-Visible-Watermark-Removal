@@ -80,7 +80,7 @@ def run_select_join(client, account_id, database_id, source_type: str):
     )
     if not resp.result or not resp.result[0].results:
         return []
-    return [dict(row) for row in resp.result[0].results][:20]
+    return [dict(row) for row in resp.result[0].results]
 
 
 def _parse_json_text(s: str):
