@@ -243,7 +243,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
     brand_info = _parse_brand_info(gemini,basic,timeline_info)
     court_info = _str(timeline_info and timeline_info.get("court")) or _str(row.get("extract_court"))
-    court_state = extract_us_state(court_info) + "州" if court_info else None
+    court_state = extract_us_state(court_info) + "州" if court_info and extract_us_state(court_info) else None
 
     goods_categories = _str(gemini and gemini.get("涉及的商品类型")) or _str(crawl.get("goodsCategories") or crawl.get("goods_categories"))
     if goods_categories and goods_categories.startswith(('{', '[')) and goods_categories.endswith(('}', ']')):
