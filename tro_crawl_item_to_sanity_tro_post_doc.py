@@ -3,6 +3,7 @@ import json
 from numbers import Real
 import os
 import re
+import time
 from typing import Any
 from dotenv import load_dotenv
 
@@ -183,6 +184,18 @@ def _parse_timeline_info(timeline_info) -> str:
     return json.dumps(timeline_ret)
 
 
+def _parse_progress(timeline_info) -> str:
+    full_timelines = timeline_info and timeline_info.get("full_timelines")
+    status = "审判中"
+    if full_timelines:
+        for item in full_timelines:
+            if 'judgment' in item.get('description'):
+                return '已判决'
+    return status
+    
+
+
+
 def row_to_tro_post_doc(row: dict) -> dict:
     """综合 row（a 表 + case_detail_info + case_detail_info2 + gemini_ai_resp）得到 Sanity tro_post 文档。"""
     # 1) gemini_ai_resp（见 tmp/gemini_ai_resp_sample.txt）：案件标题、案件编号、起诉日期、原告、律所、维权类型、品牌方、品牌方信息、涉及的商品类型、关联案件
@@ -240,6 +253,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
             print(f"error: {e} . {case_number} {goods_categories}")
         
     timeline_info = _parse_timeline_info(timeline_info)
+    case_progress = _parse_progress(timeline_info)
 
 
     # relatedCases：gemini 关联案件 > case_number_arr
@@ -292,6 +306,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "goodsCategories": goods_categories,
         "images": json.dumps(images, ensure_ascii=False) if images else None,  # {"type_a": ["url1","url2"], ...}
         "timeline": timeline_info,
+        "case_progress": case_progress,
         "courtState":court_state,
         "sourceType": row.get("source_type")
     }
