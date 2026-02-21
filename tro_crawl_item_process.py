@@ -7,7 +7,8 @@ from cloudflare import Cloudflare
 
 
 # 案号格式：如 25-cv-06628、2025-cv-06628（数字-cv-数字）；统一化为 2025-cv-06628（4位年-cv-5位号）
-CASE_NUMBER_PATTERN = re.compile(r"\b(\d{2,4})-cv-(\d+)\b", re.IGNORECASE)
+# 24-cv-12815
+CASE_NUMBER_PATTERN = re.compile(r"(\d{2,4})-cv-(\d+)", re.IGNORECASE)
 
 # 每批执行的 UPDATE 条数
 UPDATE_BATCH_SIZE = 50
