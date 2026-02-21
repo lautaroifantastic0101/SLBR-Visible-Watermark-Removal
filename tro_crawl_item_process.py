@@ -81,6 +81,8 @@ def update_is_multi_case_number(client, account_id, database_id):
             is_multi = "0"
         elif len(content_case_numbers) > 30:
             is_multi = "1"
+        elif len(title_case_number) + len(content_case_numbers) < 1:
+            is_multi = "-1"
         # if len(content_case_numbers) > 15:
         #     print(rid)
 
