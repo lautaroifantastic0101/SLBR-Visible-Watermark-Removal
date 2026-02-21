@@ -7,7 +7,7 @@ import time
 from typing import Any
 from dotenv import load_dotenv
 
-from src.utils.parse_utils import extract_us_state
+from src.utils.parse_utils import extract_us_state, parse_json_text
 
 load_dotenv()
 
@@ -94,22 +94,6 @@ def db_get_all_case_number_arr(client, account_id, database_id):
     return [dict(row) for row in resp.result[0].results]
 
 
-def _parse_json_text(s: str):
-    """解析可能是纯 JSON 或 ```json ... ``` 包裹的字符串。"""
-    if not s or not isinstance(s, str):
-        return None
-    s = s.strip()
-    try:
-        return json.loads(s)
-    except json.JSONDecodeError:
-        pass
-    m = re.search(r"```(?:json)?\s*([\s\S]*?)```", s)
-    if m:
-        try:
-            return json.loads(m.group(1).strip())
-        except json.JSONDecodeError:
-            pass
-    return None
 
 
 def _normalize_date(s: str):
@@ -212,13 +196,13 @@ def _parse_progress(timeline_info) -> str:
 def row_to_tro_post_doc(row: dict) -> dict:
     """综合 row（a 表 + case_detail_info + case_detail_info2 + gemini_ai_resp）得到 Sanity tro_post 文档。"""
     # 1) gemini_ai_resp（见 tmp/gemini_ai_resp_sample.txt）：案件标题、案件编号、起诉日期、原告、律所、维权类型、品牌方、品牌方信息、涉及的商品类型、关联案件
-    gemini = _parse_json_text(row.get("gemini_ai_resp") or "")
+    gemini = parse_json_text(row.get("gemini_ai_resp") or "")
     # 2) case_detail_info（b.crawl_item，见 tmp/basic_info_sample.json）：PgprintsTROItem - prosecution_time, case_number, law_firm, brand
-    basic = _parse_json_text(row.get("case_detail_info") or "")
+    basic = parse_json_text(row.get("case_detail_info") or "")
     # 3) case_detail_info2（c.crawl_item，见 tmp/timeline_info_sample.json）：Tro61TROItem - title, case_number, release_time, court, brand, law_firm, full_timelines
-    timeline_info = _parse_json_text(row.get("timeline_info") or "")
+    timeline_info = parse_json_text(row.get("timeline_info") or "")
     # 4) a 表 crawl_item
-    crawl = _parse_json_text(row.get("crawl_item") or "") or {}
+    crawl = parse_json_text(row.get("crawl_item") or "") or {}
 
     def _str(v, default=None):
         if v is None or v == "":

@@ -127,3 +127,33 @@ def extract_us_state(text: str):
         return US_STATE_EN_TO_ZH.get(en) if en else None
     return None
 
+
+
+import json
+def parse_json_text(s: str):
+    """解析可能是纯 JSON 或 ```json ... ``` 包裹的字符串。"""
+    if not s or not isinstance(s, str):
+        return None
+    s = s.strip()
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        pass
+    m = re.search(r"```(?:json)?\s*([\s\S]*?)```", s)
+    if m:
+        try:
+            return json.loads(m.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+    return None
+
+    
+def is_gemini_ai_resp_array(gemini_ai_resp) -> bool:
+    """判断 gemini_ai_resp 是否为数组。"""
+    if not gemini_ai_resp or not isinstance(gemini_ai_resp, str):
+        return False
+    try:
+        gemini_ai_resp_json = json.loads(gemini_ai_resp)
+        return isinstance(gemini_ai_resp_json, list)
+    except json.JSONDecodeError:
+        return False
