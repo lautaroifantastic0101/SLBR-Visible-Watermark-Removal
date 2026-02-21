@@ -45,7 +45,7 @@ def select_crawl_item_content(client, account_id, database_id):
     # D1 返回结构: resp.result[0].results 为行列表
     if not resp.result or not resp.result[0].results:
         return []
-    return [{"id": row["id"], "content": row["content"] or ""} for row in resp.result[0].results]
+    return [{"id": row["id"], "content": row["content"] or "", "title": row["title"] or ""} for row in resp.result[0].results]
 
 
 def find_case_numbers(content: str):
