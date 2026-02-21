@@ -35,7 +35,9 @@ def select_crawl_item_content(client, account_id, database_id):
     SELECT
       id,
       COALESCE(json_extract(crawl_item, '$.title'), '') as title,
-      COALESCE(json_extract(crawl_item, '$.content'), '') AS content
+      COALESCE(json_extract(crawl_item, '$.content'), '') AS content,
+      COALESCE(json_extract(crawl_item, '$.case_number'), '') AS case_number,
+      
     FROM tro_crawl_item_tb
     """
     resp = client.d1.database.query(
@@ -46,7 +48,7 @@ def select_crawl_item_content(client, account_id, database_id):
     # D1 返回结构: resp.result[0].results 为行列表
     if not resp.result or not resp.result[0].results:
         return []
-    return [{"id": row["id"], "content": row["content"] or "", "title": row["title"] or ""} for row in resp.result[0].results]
+    return [{"id": row["id"], "content": row["content"] or "", "title": row["title"] or "", "case_number": row["case_number"] or ""} for row in resp.result[0].results]
 
 
 def find_case_numbers(content: str):
@@ -70,15 +72,16 @@ def update_is_multi_case_number(client, account_id, database_id):
     update_sql_arr = []
     for row in rows:
         cnt += 1
-        rid, content, title = row["id"], row["content"], row['title']
+        rid, content, title, case_number = row["id"], row["content"], row['title'], row['case_number']
         content_case_numbers = find_case_numbers(content)
         title_case_number = find_case_numbers(title) 
+        case_number_list = find_case_numbers(case_number)
 
         is_multi = "0"
         if "集合" in title:
             is_multi = "1"
             # print(rid)
-        elif len(title_case_number)  == 1:
+        elif len(title_case_number)  == 1 or len(case_number_list) == 1:
             is_multi = "0"
         elif len(content_case_numbers) > 30:
             is_multi = "1"
