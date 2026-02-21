@@ -33,7 +33,8 @@ def select_crawl_item_content(client, account_id, database_id):
     sql = """
     SELECT
       id,
-      (COALESCE(json_extract(crawl_item, '$.title'), '') || COALESCE(json_extract(crawl_item, '$.content'), '')) AS content
+      COALESCE(json_extract(crawl_item, '$.title'), '') as title,
+      COALESCE(json_extract(crawl_item, '$.content'), '') AS content
     FROM tro_crawl_item_tb
     """
     resp = client.d1.database.query(
