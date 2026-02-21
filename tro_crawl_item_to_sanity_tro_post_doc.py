@@ -82,6 +82,17 @@ def run_select_join(client, account_id, database_id, source_type: str):
         return []
     return [dict(row) for row in resp.result[0].results]
 
+    
+def db_get_all_case_number_arr(client, account_id, database_id):
+    resp = client.d1.database.query(
+        database_id=database_id,
+        account_id=account_id,
+        sql="SELECT extract_case_number FROM tro_crawl_item_tb WHERE source_type IN ( 'CifTRONewsItem','MaijiaxingiquTRONewsItem','QqdipTROItem','RuiguanTROItem','ZlvywTROItem') AND is_multi_case_number = '0' ",
+    )
+    if not resp.result or not resp.result[0].results:
+        return []
+    return [dict(row) for row in resp.result[0].results]
+
 
 def _parse_json_text(s: str):
     """解析可能是纯 JSON 或 ```json ... ``` 包裹的字符串。"""
@@ -219,8 +230,8 @@ def row_to_tro_post_doc(row: dict) -> dict:
     case_number = _str(gemini and gemini.get("案件编号")) or _str(timeline_info and timeline_info.get("case_number")) or _str(basic and basic.get("case_number")) or _str(row.get("extract_case_number"))
     # 将案号(case_number)中的年份（4位数）替换为2位数
 
-
     case_number = _case_number_year_to_2_digits(case_number)
+
     title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
     law_date_raw = _str(gemini and gemini.get("起诉日期")) or _str(timeline_info and timeline_info.get("release_time")) or _str(basic and basic.get("prosecution_time")) or _str(crawl.get("lawDate") or crawl.get("law_date"))
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
@@ -322,7 +333,7 @@ def create_sanity_doc(rows: list, project_id: str, dataset: str, token: str, dry
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     created = 0
     errors = []
-    for i, row in enumerate(rows):
+    for i, row in enumerate[Any](rows):
         doc = row_to_tro_post_doc(row)
         payload = {"mutations": [{"createOrReplace": {"_type": "tro_post", **doc}}]}
         if dry_run:

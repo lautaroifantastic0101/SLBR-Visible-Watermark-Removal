@@ -123,20 +123,23 @@ def main():
         return
 
     client = Cloudflare(api_token=token)
-    result = update_is_multi_case_number(client, account_id, database_id)
-    print(f"共处理 {len(result)} 条")
-    for row in result:
-        cases = row.get("case_numbers", [])
-        multi = row.get("is_multi_case_number", "")
-        err = row.get("error", "")
-        # if multi == "1" or len(cases) >= 10:
-        msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
-        if cases:
-            msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
-        if err:
-            msg += f", error={err}"
-        print(msg)
-    return result
+    print(find_case_numbers("TRO案例24-cv-12815：Nanoblock 积木商标维权！"))
+
+    
+    # result = update_is_multi_case_number(client, account_id, database_id)
+    # print(f"共处理 {len(result)} 条")
+    # for row in result:
+    #     cases = row.get("case_numbers", [])
+    #     multi = row.get("is_multi_case_number", "")
+    #     err = row.get("error", "")
+    #     # if multi == "1" or len(cases) >= 10:
+    #     msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
+    #     if cases:
+    #         msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
+    #     if err:
+    #         msg += f", error={err}"
+    #     print(msg)
+    # return result
 
 
 if __name__ == "__main__":
