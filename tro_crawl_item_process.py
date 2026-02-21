@@ -126,13 +126,13 @@ def main():
         cases = row.get("case_numbers", [])
         multi = row.get("is_multi_case_number", "")
         err = row.get("error", "")
-        msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
         if multi == "1" or len(cases) >= 10:
+            msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
             if cases:
                 msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
             if err:
                 msg += f", error={err}"
-        print(msg)
+            print(msg)
     return result
 
 
