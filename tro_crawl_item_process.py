@@ -76,12 +76,13 @@ def update_is_multi_case_number(client, account_id, database_id):
         is_multi = "0"
         if "集合" in title:
             is_multi = "1"
-            print(rid)
+            # print(rid)
         elif len(title_case_number)  == 1:
             is_multi = "0"
-        
-        if len(content_case_numbers) > 15:
-            print(rid)
+        elif len(content_case_numbers) > 30:
+            is_multi = "1"
+        # if len(content_case_numbers) > 15:
+        #     print(rid)
 
         # case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
         case_number_arr_json = ','.join(content_case_numbers)
@@ -90,19 +91,19 @@ def update_is_multi_case_number(client, account_id, database_id):
         update_sql_arr.append(update_sql)
 
 
-        # if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
-        #     print(f"进度: {cnt}/{len(rows)} ({cnt/len(rows)*100:.2f}%)")
-        #     # print(';'.join(update_sql_arr))
-        #     try:
-        #         client.d1.database.query(
-        #             database_id=database_id,
-        #             account_id=account_id,
-        #             sql=';'.join(update_sql_arr),
-        #         )
-        #     except Exception as e:
-        #         results[-1]["error"] = str(e)
-        #     finally:
-        #         update_sql_arr = []
+        if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
+            print(f"进度: {cnt}/{len(rows)} ({cnt/len(rows)*100:.2f}%)")
+            # print(';'.join(update_sql_arr))
+            try:
+                client.d1.database.query(
+                    database_id=database_id,
+                    account_id=account_id,
+                    sql=';'.join(update_sql_arr),
+                )
+            except Exception as e:
+                results[-1]["error"] = str(e)
+            finally:
+                update_sql_arr = []
     return results
 
 def main():
@@ -126,13 +127,13 @@ def main():
         cases = row.get("case_numbers", [])
         multi = row.get("is_multi_case_number", "")
         err = row.get("error", "")
-        if multi == "1" or len(cases) >= 10:
-            msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
-            if cases:
-                msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
-            if err:
-                msg += f", error={err}"
-            print(msg)
+        # if multi == "1" or len(cases) >= 10:
+        msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
+        if cases:
+            msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
+        if err:
+            msg += f", error={err}"
+        print(msg)
     return result
 
 
