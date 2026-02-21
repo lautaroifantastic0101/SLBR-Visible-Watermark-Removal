@@ -87,7 +87,7 @@ def db_get_all_case_number_arr(client, account_id, database_id):
     resp = client.d1.database.query(
         database_id=database_id,
         account_id=account_id,
-        sql="SELECT extract_case_number FROM tro_crawl_item_tb WHERE source_type IN ( 'CifTRONewsItem','MaijiaxingiquTRONewsItem','QqdipTROItem','RuiguanTROItem','ZlvywTROItem') AND is_multi_case_number = '0' ",
+        sql="SELECT extract_case_number FROM tro_crawl_item_tb WHERE source_type IN ( 'CifTRONewsItem','MaijiaxingiquTRONewsItem','QqdipTROItem','RuiguanTROItem','ZlvywTROItem') AND is_multi_case_number = 0 ",
     )
     if not resp.result or not resp.result[0].results:
         return []
