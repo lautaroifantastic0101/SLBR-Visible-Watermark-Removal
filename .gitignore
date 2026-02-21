@@ -17,6 +17,7 @@ venv/
 .idea/
 .vscode/
 
+test.py
 
 *.pth.tar
 .env
