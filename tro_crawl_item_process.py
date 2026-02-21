@@ -68,29 +68,40 @@ def update_is_multi_case_number(client, account_id, database_id):
     update_sql_arr = []
     for row in rows:
         cnt += 1
-        rid, content = row["id"], row["content"]
-        case_numbers = find_case_numbers(content)
-        is_multi = "1" if len(case_numbers) >= 2 else "0"
+        rid, content, title = row["id"], row["content"], row['title']
+        content_case_numbers = find_case_numbers(content)
+        title_case_number = find_case_numbers(title) 
+
+        is_multi = "0"
+        if "集合" in title:
+            is_multi = "1"
+            print(rid)
+        elif len(title_case_number)  == 1:
+            is_multi = "0"
+        
+        if len(content_case_numbers) > 15:
+            print(rid)
+
         # case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
-        case_number_arr_json = ','.join(case_numbers)
-        results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_numbers})
+        case_number_arr_json = ','.join(content_case_numbers)
+        results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": content_case_numbers})
         update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, case_number_arr = "{case_number_arr_json}" WHERE id = {rid}'
         update_sql_arr.append(update_sql)
 
 
-        if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
-            print(f"进度: {cnt}/{len(rows)} ({cnt/len(rows)*100:.2f}%)")
-            # print(';'.join(update_sql_arr))
-            try:
-                client.d1.database.query(
-                    database_id=database_id,
-                    account_id=account_id,
-                    sql=';'.join(update_sql_arr),
-                )
-            except Exception as e:
-                results[-1]["error"] = str(e)
-            finally:
-                update_sql_arr = []
+        # if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
+        #     print(f"进度: {cnt}/{len(rows)} ({cnt/len(rows)*100:.2f}%)")
+        #     # print(';'.join(update_sql_arr))
+        #     try:
+        #         client.d1.database.query(
+        #             database_id=database_id,
+        #             account_id=account_id,
+        #             sql=';'.join(update_sql_arr),
+        #         )
+        #     except Exception as e:
+        #         results[-1]["error"] = str(e)
+        #     finally:
+        #         update_sql_arr = []
     return results
 
 def main():
