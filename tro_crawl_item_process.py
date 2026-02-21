@@ -36,7 +36,7 @@ def select_crawl_item_content(client, account_id, database_id):
       id,
       COALESCE(json_extract(crawl_item, '$.title'), '') as title,
       COALESCE(json_extract(crawl_item, '$.content'), '') AS content,
-      COALESCE(json_extract(crawl_item, '$.case_number'), '') AS case_number,
+      COALESCE(json_extract(crawl_item, '$.case_number'), '') AS case_number
       
     FROM tro_crawl_item_tb
     """
