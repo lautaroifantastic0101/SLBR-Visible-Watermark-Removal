@@ -216,10 +216,13 @@ def row_to_tro_post_doc(row: dict) -> dict:
     case_number = _str(row.get("extract_case_number"))
     case_number_arr = _str(row.get("case_number_arr"))
     case_number_arr = case_number_arr.split(',') if case_number_arr is not None else []
+    print(case_number)
+    print(case_number_arr)
     case_number_arr.remove(case_number)
     relate_case_num_arr =case_number_arr 
+    print(relate_case_num_arr)
     
-    print(case_number, case_number_arr)
+    # print(case_number, case_number_arr)
 
     # case_number = _str(gemini and gemini.get("案件编号")) or _str(timeline_info and timeline_info.get("case_number")) or _str(basic and basic.get("case_number")) or _str(row.get("extract_case_number"))
     # 将案号(case_number)中的年份（4位数）替换为2位数
