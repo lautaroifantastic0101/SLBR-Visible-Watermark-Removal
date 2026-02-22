@@ -8,6 +8,7 @@ import select
 import time
 from typing import Any
 from dotenv import load_dotenv
+import requests
 
 from src.utils.parse_utils import extract_us_state, parse_json_text
 
@@ -318,7 +319,8 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "timeline": timelines,
         "case_progress": case_progress,
         "courtState":court_state,
-        "sourceType": row.get("source_type")
+        "sourceType": row.get("source_type"),
+        "patentList": row.get("patent_arr")
     }
     return {k: v for k, v in doc.items() if v is not None}
 
@@ -418,13 +420,29 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
     return [dict(row) for row in resp.result[0].results]
 
 
-def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
+def create_sanity_doc_by_case_number(client, account_id, database_id, sanity_project, sanity_dataset, sanity_token, case_number: str):
     "根据case number查询对应的rows，并且返回一个组装好的sanity doc"
     rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
-    print(json.dumps(rows))
+    # print(json.dumps(rows))
     if len(rows) > 0:
-        ret = row_to_tro_post_doc(rows[0])
-        print(json.dumps(ret))
+        doc = row_to_tro_post_doc(rows[0])
+        print(json.dumps(doc))
+        upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
+
+
+
+def upload_sanity_doc(sanity_project, token, dataset, doc, dry_run: bool = False):
+    payload = {"mutations": [{"createOrReplace": {"_type": "tro_post", **doc}}]}
+    base = f"https://{sanity_project}.api.sanity.io/v2022-03-07/data/mutate/{dataset}"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    if dry_run:
+        print(f"  [dry_run]  caseNumber={doc.get('caseNumber')} title={doc.get('title', '')[:40]}...")
+    try:
+        r = requests.post(base, json=payload, headers=headers, timeout=30)
+        r.raise_for_status()
+    except Exception as e:
+        print( "caseNumber:", doc.get("caseNumber"), "error", str(e))
+
 
 
 def main():
@@ -453,7 +471,7 @@ def main():
 
     from cloudflare import Cloudflare
     client = Cloudflare(api_token=token)
-    create_sanity_doc_by_case_number(client, account_id,  database_id, "2025-cv-00335")
+    create_sanity_doc_by_case_number(client, account_id,  database_id, sanity_project, sanity_dataset, sanity_token,  "2025-cv-00335")
 
     # rows = run_select_join(client, account_id, database_id, args.source_type)
     # print(f"共 {len(rows)} 条")
