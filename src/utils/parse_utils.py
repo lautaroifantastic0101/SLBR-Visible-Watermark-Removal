@@ -85,14 +85,16 @@ def parse_json_text(text: str):
 # -----------------------------------------------------------------------------
 
 # 常见专利号格式（国家/类型前缀 + 数字）
-# US: 8,123,456 / US8123456；设计 D123456；植物 PP12345；再颁 RE12345
-# CN: CN123456789.0 / CN 202010123456.X / CN123456789A
+# US: 8,123,456 / US8123456；设计 D123456、USD974030S1；植物 PP12345；再颁 RE12345
+# CN: CN123456789.0 / CN 202010123456.X；长数字号 90080187090004
 # EP: EP 1234567 A1；WO/PCT: WO 2020/123456；JP: JP 2020-123456
 PATENT_NUMBER_PATTERN = re.compile(
     r"\b("
     r"(?:US|CN|EP|WO|PCT|JP|KR|DE|GB)\s*[\d,\.\-/]+(?:\s*[A-Z]\d?)?"
+    r"|USD\d+S\d+"
     r"|(?:US\s*)?(?:D|PP|RE)\s*\d[\d,]*"
     r"|\d{1,3}(?:,\d{3})+\s*(?:\.\d+)?(?:\s*[A-Z]\d?)?"
+    r"|\d{12,}"
     r")\b",
     re.IGNORECASE,
 )
@@ -101,7 +103,7 @@ PATENT_NUMBER_PATTERN = re.compile(
 def extract_patent_numbers(text: str, unique: bool = True):
     """
     从文本中提取专利号，返回匹配到的字符串列表。
-    支持常见格式：US/CN/EP/WO/PCT/JP 等国家代码+数字、美国 D/PP/RE 类型、纯数字带逗号等。
+    支持常见格式：US/CN/EP/WO/PCT/JP 等国家代码+数字、美国 D/PP/RE 类型、USD974030S1、纯数字带逗号、12 位以上长数字（如 90080187090004）等。
     :param text: 输入文本
     :param unique: 是否去重（保持出现顺序），默认 True
     :return: 专利号字符串列表，无匹配返回 []

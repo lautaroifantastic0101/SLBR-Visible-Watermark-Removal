@@ -44,7 +44,6 @@ def select_crawl_item_content(client, account_id, database_id):
       gemini_ai_resp
       
     FROM tro_crawl_item_tb
-    limit 100
     """
     resp = client.d1.database.query(
         database_id=database_id,
