@@ -403,7 +403,8 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
     # D1 返回结构: resp.result[0].results 为行列表
     if not resp.result or not resp.result[0].results:
         return []
-    return [{"id": row["id"], "patent_arr": row["patent_arr"] or "", "title": row["title"] or "", "case_number_arr": row["case_number_arr"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or ""} for row in resp.result[0].results]
+    # return [{"id": row["id"], "patent_arr": row["patent_arr"] or "", "title": row["title"] or "", "case_number_arr": row["case_number_arr"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or ""} for row in resp.result[0].results]
+    return [dict(row) for row in resp.result[0].results]
 
 
 def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
