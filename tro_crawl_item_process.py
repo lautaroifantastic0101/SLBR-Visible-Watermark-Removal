@@ -1,4 +1,5 @@
 import argparse
+from ast import Num
 import json
 import os
 import re
@@ -113,13 +114,14 @@ def update_is_multi_case_number(client, account_id, database_id):
 
         # case_numbers = content_case_numbers + title_case_number + case_number_list
         # case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
-        title_case_number_json = ','.join(title_case_number)
+        # title_case_number_json = ','.join(title_case_number)
 
         case_num_json = {'content_case_numbers': content_case_numbers, 'title_case_number': title_case_number,
                          'origin_case_number': case_number_list}
         
         results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": content_case_numbers+title_case_number+case_number_list})
         case_number_arr_json = json.dumps(case_num_json) 
+        print(json.dumps(case_num_json))
 
         ##########################################
         # 计算extract_case_number字段逻辑
