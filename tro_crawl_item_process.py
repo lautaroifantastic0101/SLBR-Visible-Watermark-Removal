@@ -82,7 +82,9 @@ def update_is_multi_case_number(client, account_id, database_id):
         case_number_list = find_case_numbers(case_number)
 
         is_multi = "0"
-        if "集合" in title or is_gemini_ai_resp_array(gemini_ai_resp):
+        idx1 = str(gemini_ai_resp).index('{')
+        idx2 = str(gemini_ai_resp).index('[')
+        if "集合" in title or is_gemini_ai_resp_array(gemini_ai_resp) or idx2 < idx1:
             is_multi = "1"
             # print(gemini_ai_resp)
             # print(rid)
