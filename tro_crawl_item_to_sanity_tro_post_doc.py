@@ -9,6 +9,7 @@ import time
 from typing import Any
 from dotenv import load_dotenv
 import requests
+from sympy import E, EX
 
 from src.utils.parse_utils import extract_us_state, parse_json_text
 
@@ -423,11 +424,12 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
     # print(json.dumps(rows))
     if len(rows) > 0:
-        doc = row_to_tro_post_doc(rows[0])
-        return doc
+        try:
+            doc = row_to_tro_post_doc(rows[0])
+            return doc
+        except Exception as e:
+            print( "caseNumber:", case_number, "error", str(e))
         # print(json.dumps(doc))
-        # upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
-
 
 
 def upload_sanity_doc(sanity_project, token, dataset, doc):
