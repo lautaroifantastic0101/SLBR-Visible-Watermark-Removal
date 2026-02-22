@@ -219,7 +219,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     case_number_arr = set(case_number_arr.split(',') if case_number_arr is not None else [])
 
     case_number_arr.remove(case_number)
-    relate_case_num_arr = case_number_arr 
+    relate_case_num_arr = case_number_arr
     
     # print(case_number, case_number_arr)
 
@@ -313,7 +313,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "lawFirm": law_firm,
         "lawType": law_type,
         "courtInfo": court_info,
-        "relatedCases": related,
+        "relatedCases": json.dumps(related),
         "goodsCategories": goods_categories,
         "images": json.dumps(images, ensure_ascii=False) if images else None,  # {"type_a": ["url1","url2"], ...}
         "timeline": timelines,
