@@ -135,13 +135,18 @@ def update_is_multi_case_number(client, account_id, database_id):
         elif content_case_numbers is not None and len(content_case_numbers) > 0:
             extract_case_num_column = content_case_numbers[0]
         print(extract_case_num_column)
+        
+        
+        a = ','.join(title_case_number)
+        b = ','.join(content_case_numbers)
+        c = ','.join(case_number_list)
 
         
     
         ##########################################
         # 生成更新的sql and 执行
         ##########################################
-        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{extract_case_num_column}", case_number_arr = "{case_number_arr_json}" WHERE id = {rid}'
+        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{extract_case_num_column}", case_number_arr = "{case_number_arr_json}", title_case_arr="{a}",  content_case_arr="{b}" origin_case_arr="{c}", WHERE id = {rid}'
         update_sql_arr.append(update_sql)
 
 
