@@ -44,7 +44,6 @@ def select_crawl_item_content(client, account_id, database_id):
       gemini_ai_resp
       
     FROM tro_crawl_item_tb
-    limit 50
     """
     resp = client.d1.database.query(
         database_id=database_id,
@@ -67,8 +66,12 @@ def find_case_numbers(content: str):
     return list[str](dict.fromkeys(normalized))
 
 
-def update_is_multi_case_number(client, account_id, database_id):
-    """根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）。"""
+def update_is_multi_case_number_and_court_info(client, account_id, database_id):
+    """
+    根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）
+    更新表中的multi_case相关字段信息；
+    更新表中court_info字段
+    """
     rows = select_crawl_item_content(client, account_id, database_id)
     if not rows:
         return []
@@ -134,7 +137,7 @@ def update_is_multi_case_number(client, account_id, database_id):
             extract_case_num_column = title_case_number[0]
         elif content_case_numbers is not None and len(content_case_numbers) > 0:
             extract_case_num_column = content_case_numbers[0]
-        print(extract_case_num_column)
+        # print(extract_case_num_column)
         
         
         a = ','.join(title_case_number)
@@ -190,7 +193,7 @@ def main():
     # print(find_case_numbers("TRO案例24-cv-12815：Nanoblock 积木商标维权！"))
 
     
-    result = update_is_multi_case_number(client, account_id, database_id)
+    result = update_is_multi_case_number_and_court_info(client, account_id, database_id)
     print(f"共处理 {len(result)} 条")
     for row in result:
         cases = row.get("case_numbers", [])
