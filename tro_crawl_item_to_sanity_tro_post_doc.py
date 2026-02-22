@@ -215,12 +215,10 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 优先级：gemini > timeline > basic > crawl > row 直字段
     case_number = _str(row.get("extract_case_number"))
     case_number_arr = _str(row.get("case_number_arr"))
-    case_number_arr = case_number_arr.split(',') if case_number_arr is not None else []
-    print(case_number)
-    print(case_number_arr)
+    case_number_arr = set(case_number_arr.split(',') if case_number_arr is not None else [])
+
     case_number_arr.remove(case_number)
-    relate_case_num_arr =case_number_arr 
-    print(relate_case_num_arr)
+    relate_case_num_arr = case_number_arr 
     
     # print(case_number, case_number_arr)
 
