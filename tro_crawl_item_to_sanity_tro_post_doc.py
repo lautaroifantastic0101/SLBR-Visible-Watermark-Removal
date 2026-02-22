@@ -216,7 +216,8 @@ def row_to_tro_post_doc(row: dict) -> dict:
     case_number = _str(row.get("extract_case_number"))
     case_number_arr = _str(row.get("case_number_arr"))
     case_number_arr = case_number_arr.split(',') if case_number_arr is not None else []
-    relate_case_num_arr =  case_number_arr.remove(case_number)
+    case_number_arr.remove(case_number)
+    relate_case_num_arr =case_number_arr 
     
     print(case_number, case_number_arr)
 
