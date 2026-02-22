@@ -256,6 +256,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
 
     # relatedCases：gemini 关联案件 > case_number_arr
+    
     related = _related_cases_list(gemini and gemini.get("关联案件")) if gemini else []
     if not related and row.get("case_number_arr"):
         related = _related_cases_list(row["case_number_arr"])
@@ -404,11 +405,14 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         return []
     return [{"id": row["id"], "patent_arr": row["patent_arr"] or "", "title": row["title"] or "", "case_number_arr": row["case_number_arr"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or ""} for row in resp.result[0].results]
 
+
 def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
     "根据case number查询对应的rows，并且返回一个组装好的sanity doc"
     rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
-    ret = row_to_tro_post_doc(rows[0])
-    print(json.dumps(ret))
+    print(rows)
+    if len(rows) > 0:
+        ret = row_to_tro_post_doc(rows[0])
+        print(json.dumps(ret))
 
 
 def main():
