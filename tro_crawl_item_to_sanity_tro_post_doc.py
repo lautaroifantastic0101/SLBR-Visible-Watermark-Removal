@@ -213,6 +213,10 @@ def row_to_tro_post_doc(row: dict) -> dict:
         return s if s else default
 
     # 优先级：gemini > timeline > basic > crawl > row 直字段
+    case_number = _str(row.get("extract_case_number"))
+    case_number_arr = _str(row.get("case_number_arr"))
+    print(case_number, case_number_arr)
+
     case_number = _str(gemini and gemini.get("案件编号")) or _str(timeline_info and timeline_info.get("case_number")) or _str(basic and basic.get("case_number")) or _str(row.get("extract_case_number"))
     # 将案号(case_number)中的年份（4位数）替换为2位数
 
@@ -352,6 +356,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         a.patent_arr,
         a.title,
         a.case_number_arr,
+        a.extract_case_number,
         b.crawl_item AS basic_info,
         c.crawl_item AS timeline_info,
         d.new_url_arr,
