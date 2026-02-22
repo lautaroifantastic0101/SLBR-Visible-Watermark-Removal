@@ -419,7 +419,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
 def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
     "根据case number查询对应的rows，并且返回一个组装好的sanity doc"
     rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
-    print(rows)
+    print(json.dumps(rows))
     if len(rows) > 0:
         ret = row_to_tro_post_doc(rows[0])
         print(json.dumps(ret))
