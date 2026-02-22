@@ -92,9 +92,9 @@ def update_is_multi_case_number(client, account_id, database_id):
         elif len(title_case_number) + len(content_case_numbers) < 1:
             is_multi = "-1"
         if gemini_ai_resp is not None:
-            idx1 = str(gemini_ai_resp).index('{')
-            idx2 = str(gemini_ai_resp).index('[')
-            if idx2 < idx1:
+            idx1 = str(gemini_ai_resp).find('{')
+            idx2 = str(gemini_ai_resp).find('[')
+            if idx2 != -1 and idx2 < idx1:
                 is_multi = '1'
             
         # if len(content_case_numbers) > 15:
