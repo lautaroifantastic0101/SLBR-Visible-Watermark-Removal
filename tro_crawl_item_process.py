@@ -6,7 +6,7 @@ import re
 from resource import getrlimit
 from cloudflare import Cloudflare
 
-from src.utils.parse_utils import is_gemini_ai_resp_array
+from src.utils.parse_utils import extract_us_state, is_gemini_ai_resp_array
 
 
 
@@ -140,6 +140,8 @@ def update_is_multi_case_number(client, account_id, database_id):
         a = ','.join(title_case_number)
         b = ','.join(content_case_numbers)
         c = ','.join(case_number_list)
+
+        print(extract_us_state(content))
 
         
     
