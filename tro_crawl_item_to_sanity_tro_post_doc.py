@@ -215,9 +215,12 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 优先级：gemini > timeline > basic > crawl > row 直字段
     case_number = _str(row.get("extract_case_number"))
     case_number_arr = _str(row.get("case_number_arr"))
+    case_number_arr = case_number_arr.split(',') if case_number_arr is not None else []
+    relate_case_num_arr =  case_number_arr.remove(case_number)
+    
     print(case_number, case_number_arr)
 
-    case_number = _str(gemini and gemini.get("案件编号")) or _str(timeline_info and timeline_info.get("case_number")) or _str(basic and basic.get("case_number")) or _str(row.get("extract_case_number"))
+    # case_number = _str(gemini and gemini.get("案件编号")) or _str(timeline_info and timeline_info.get("case_number")) or _str(basic and basic.get("case_number")) or _str(row.get("extract_case_number"))
     # 将案号(case_number)中的年份（4位数）替换为2位数
 
     case_number = _case_number_year_to_2_digits(case_number)
@@ -261,11 +264,12 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
     # relatedCases：gemini 关联案件 > case_number_arr
     
-    related = _related_cases_list(gemini and gemini.get("关联案件")) if gemini else []
-    if not related and row.get("case_number_arr"):
-        related = _related_cases_list(row["case_number_arr"])
-    related = [x for x in related if x] or None
-    related = json.dumps(related)
+    # related = _related_cases_list(gemini and gemini.get("关联案件")) if gemini else []
+    related = [_case_number_year_to_2_digits(i) for i in relate_case_num_arr]
+    # if not related and row.get("case_number_arr"):
+        # related = _related_cases_list(row["case_number_arr"])
+    # related = [x for x in related if x] or None
+    # related = json.dumps(related)
     
 
     # # content：品牌方信息 + 风险提示（gemini）+ 可选 timeline 摘要
