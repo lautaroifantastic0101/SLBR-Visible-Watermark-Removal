@@ -2,7 +2,9 @@ import argparse
 import json
 from numbers import Real
 import os
+from pydoc import cli
 import re
+import select
 import time
 from typing import Any
 from dotenv import load_dotenv
@@ -338,6 +340,77 @@ def create_sanity_doc(rows: list, project_id: str, dataset: str, token: str, dry
     return created
 
 
+
+
+def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number):
+    """执行 SQL：从 tro_crawl_item_tb 根据case_number把信息获取回来"""
+    sql = f"""
+        SELECT
+        a.id,
+        a.gemini_ai_resp,
+        a.patent_arr,
+        a.title,
+        a.case_number_arr,
+        b.crawl_item AS basic_info,
+        c.crawl_item AS timeline_info,
+        d.new_url_arr,
+        d.img_type_arr
+        FROM (
+            select id, 
+                    origin_article_id,
+                    gemini_ai_resp, 
+                    patent_arr, 
+                    case_number_arr ,
+                    extract_case_number,
+                    COALESCE(json_extract(crawl_item, '$.title'), '') as title
+            FROM tro_crawl_item_tb
+            where extract_case_number = "{case_number}"
+            and     source_type in (
+            'CifTRONewsItem',
+            'MaijiaxingiquTRONewsItem',
+            'QqdipTROItem',
+            'RuiguanTROItem',
+            'ZlvywTROItem'
+            )
+        ) a
+        LEFT OUTER JOIN (
+        SELECT id, crawl_item, extract_case_number
+        FROM tro_crawl_item_tb
+        WHERE source_type IN ('PgprintsTROItem')
+        ) b ON a.extract_case_number = b.extract_case_number
+        LEFT OUTER JOIN (
+        SELECT id, crawl_item, extract_case_number
+        FROM tro_crawl_item_tb
+        WHERE source_type IN ('Tro61TROItem')
+            AND is_multi_case_number = '0'
+            AND extract_case_number IS NOT NULL
+        ) c ON a.extract_case_number = TRIM(c.extract_case_number)
+        LEFT OUTER JOIN (
+        SELECT
+            origin_post_id,
+            GROUP_CONCAT(new_url) AS new_url_arr,
+            GROUP_CONCAT(img_type) AS img_type_arr
+        FROM tro_post_img
+        GROUP BY origin_post_id
+        ) d ON a.origin_article_id = d.origin_post_id;
+    """
+    resp = client.d1.database.query(
+        database_id=database_id,
+        account_id=account_id,
+        sql=sql.strip(),
+    )
+    # D1 返回结构: resp.result[0].results 为行列表
+    if not resp.result or not resp.result[0].results:
+        return []
+    return [{"id": row["id"], "patent_arr": row["patent_arr"] or "", "title": row["title"] or "", "case_number_arr": row["case_number_arr"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or ""} for row in resp.result[0].results]
+
+def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
+    "根据case number查询对应的rows，并且返回一个组装好的sanity doc"
+    rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
+    ret = row_to_tro_post_doc(rows[0])
+    print(ret)
+
+
 def main():
     parser = argparse.ArgumentParser(description="tro_crawl_item 联表查询，结果可塞入 Sanity doc")
     parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可通过环境变量 CF_D1_API_TOKEN 传递")
@@ -364,19 +437,21 @@ def main():
 
     from cloudflare import Cloudflare
     client = Cloudflare(api_token=token)
-    rows = run_select_join(client, account_id, database_id, args.source_type)
-    print(f"共 {len(rows)} 条")
-    for i, row in enumerate[dict[Any, Any]](rows):
-        print(f"  [{i+1}] id={row.get('id')}, origin_article_id={row.get('origin_article_id')}, extract_case_number={row.get('extract_case_number')}")
-    # if len(rows) > 5:
-    #     print(f"  ... 其余 {len(rows) - 5} 条")
-    if args.upload and rows:
-        if not sanity_project or not sanity_token:
-            print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
-            return rows
-        print("上传到 Sanity (tro_post)...")
-        create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
-    return rows
+    create_sanity_doc_by_case_number(client, account_id,  database_id, "2025-cv-00335")
+
+    # rows = run_select_join(client, account_id, database_id, args.source_type)
+    # print(f"共 {len(rows)} 条")
+    # for i, row in enumerate[dict[Any, Any]](rows):
+    #     print(f"  [{i+1}] id={row.get('id')}, origin_article_id={row.get('origin_article_id')}, extract_case_number={row.get('extract_case_number')}")
+    # # if len(rows) > 5:
+    # #     print(f"  ... 其余 {len(rows) - 5} 条")
+    # if args.upload and rows:
+    #     if not sanity_project or not sanity_token:
+    #         print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
+    #         return rows
+    #     print("上传到 Sanity (tro_post)...")
+    #     create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
+    # return rows
 
 
 if __name__ == "__main__":
