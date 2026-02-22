@@ -1,5 +1,88 @@
+import json
 import re
+
+# -----------------------------------------------------------------------------
+# 从文本中提取并解析 JSON
+# -----------------------------------------------------------------------------
+
+
+def parse_json_text(text: str):
+    """
+    从文本中提取 JSON 并解析为 Python 对象。
+    支持：
+    1) 纯 JSON 字符串
+    2) Markdown 代码块内的 JSON（```json ... ``` 或 ``` ... ```）
+    3) 正文中内嵌的 JSON（从第一个 [ 或 { 起括号匹配截取）
+    输入样例见 tmp/json_sample1.json, json_sampel2.json, json_sample3.json
+    """
+    if text is None:
+        return None
+    if not isinstance(text, str):
+        return None
+    s = text.strip()
+    if not s:
+        return None
+
+    # 1) 整体尝试解析
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        pass
+
+    # 2) 提取 ```json ... ``` 或 ``` ... ``` 中的内容
+    m = re.search(r"```(?:json)?\s*([\s\S]*?)```", s)
+    if m:
+        raw = m.group(1).strip()
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            pass
+
+    # 3) 从第一个 [ 或 { 开始括号匹配截取 JSON 子串
+    start_arr = s.find("[")
+    start_obj = s.find("{")
+    start = -1
+    open_char = None
+    close_char = None
+    if start_arr >= 0 and (start_obj < 0 or start_arr < start_obj):
+        start = start_arr
+        open_char, close_char = "[", "]"
+    elif start_obj >= 0:
+        start = start_obj
+        open_char, close_char = "{", "}"
+
+    if start >= 0:
+        depth = 0
+        i = start
+        while i < len(s):
+            if s[i] == open_char:
+                depth += 1
+            elif s[i] == close_char:
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(s[start : i + 1])
+                    except json.JSONDecodeError:
+                        break
+            elif s[i] in ('"', "'"):
+                # 跳过字符串，避免括号在字符串内被误计
+                quote = s[i]
+                i += 1
+                while i < len(s):
+                    if s[i] == "\\":
+                        i += 2
+                        continue
+                    if s[i] == quote:
+                        break
+                    i += 1
+            i += 1
+
+    return None
+
+
+# -----------------------------------------------------------------------------
 # 美国州：中文常见译名 -> 英文名；用于从法院名称等字符串中提取州
+# -----------------------------------------------------------------------------
 US_STATE_ZH_TO_EN = {
     "伊利诺伊": "Illinois",
     "加利福尼亚": "California",
@@ -129,23 +212,33 @@ def extract_us_state(text: str):
 
 
 
-import json
-def parse_json_text(s: str):
-    """解析可能是纯 JSON 或 ```json ... ``` 包裹的字符串。"""
-    if not s or not isinstance(s, str):
-        return None
-    s = s.strip()
-    try:
-        return json.loads(s)
-    except json.JSONDecodeError:
-        pass
-    m = re.search(r"```(?:json)?\s*([\s\S]*?)```", s)
-    if m:
-        try:
-            return json.loads(m.group(1).strip())
-        except json.JSONDecodeError:
-            pass
-    return None
+# import json
+# def parse_json_text(s: str):
+#     if '```' in s:
+#         """解析可能是纯 JSON 或 ```json ... ``` 包裹的字符串。"""
+#         if not s or not isinstance(s, str):
+#             return None
+#         s = s.strip()
+#         try:
+#             return json.loads(s)
+#         except json.JSONDecodeError:
+#             pass
+#         m = re.search(r"```(?:json)?\s*([\s\S]*?)```", s)
+#         if m:
+#             try:
+#                 return json.loads(m.group(1).strip())
+#             except json.JSONDecodeError:
+#                 pass
+#         return None
+#     else:
+#         """提取所有 {{ ... }} 之间的文本（贪婪模式）"""
+#         if not text or not isinstance(text, str):
+#         return []
+#         pattern = r"\{\{(.*)\}\}"
+#     matches = re.findall(pattern, text, re.DOTALL)
+#     return matches
+
+
 
     
 def is_gemini_ai_resp_array(gemini_ai_resp) -> bool:
@@ -153,7 +246,9 @@ def is_gemini_ai_resp_array(gemini_ai_resp) -> bool:
     if not gemini_ai_resp or not isinstance(gemini_ai_resp, str):
         return False
     try:
-        gemini_ai_resp_json = json.loads(gemini_ai_resp)
+        gemini_ai_resp_json = parse_json_text(gemini_ai_resp)
+        # gemini_ai_resp_json = json.loads(gemini_ai_resp)
         return isinstance(gemini_ai_resp_json, list)
-    except json.JSONDecodeError:
+    except Exception as e:
+        print(f"error: {e} . {gemini_ai_resp}")
         return False

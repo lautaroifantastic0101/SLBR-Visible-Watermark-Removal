@@ -119,7 +119,7 @@ def _normalize_date(s: str):
 
 
 def _related_cases_list(val) -> list[str]:
-    """将 关联案件 / case_number_arr 转为字符串数组。"""
+    """将关联案件 / case_number_arr 转为字符串数组。"""
 
     if not val:
         return []
