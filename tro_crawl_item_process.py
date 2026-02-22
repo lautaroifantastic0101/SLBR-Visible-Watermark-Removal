@@ -43,6 +43,7 @@ def select_crawl_item_content(client, account_id, database_id):
       gemini_ai_resp
       
     FROM tro_crawl_item_tb
+    limit 50
     """
     resp = client.d1.database.query(
         database_id=database_id,
@@ -130,6 +131,7 @@ def update_is_multi_case_number(client, account_id, database_id):
             extract_case_num_column = title_case_number[0]
         elif content_case_numbers is not None and len(content_case_numbers) > 0:
             extract_case_num_column = content_case_numbers[0]
+        print(extract_case_num_column)
 
         
     
