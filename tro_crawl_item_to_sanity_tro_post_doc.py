@@ -524,7 +524,7 @@ def main():
         if extract_case_number is None:
             continue
         doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
-        if args.upload:
+        if args.upload and doc is not None:
             if not sanity_project or not sanity_token:
                 print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
                 return 
