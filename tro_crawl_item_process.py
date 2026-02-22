@@ -6,7 +6,7 @@ import re
 from resource import getrlimit
 from cloudflare import Cloudflare
 
-from src.utils.parse_utils import extract_us_state, is_gemini_ai_resp_array
+from src.utils.parse_utils import extract_patent_numbers, extract_us_state, is_gemini_ai_resp_array
 
 
 
@@ -44,6 +44,7 @@ def select_crawl_item_content(client, account_id, database_id):
       gemini_ai_resp
       
     FROM tro_crawl_item_tb
+    limit 100
     """
     resp = client.d1.database.query(
         database_id=database_id,
@@ -66,7 +67,7 @@ def find_case_numbers(content: str):
     return list[str](dict.fromkeys(normalized))
 
 
-def update_is_multi_case_number_and_court_info(client, account_id, database_id):
+def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id):
     """
     根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）
     更新表中的multi_case相关字段信息；
@@ -151,12 +152,18 @@ def update_is_multi_case_number_and_court_info(client, account_id, database_id):
         court_info = extract_us_state(content) 
         if court_info is None:
             court_info = ''
+
+        ##########################################
+        # 提取patent信息
+        ##########################################
+        patent_info = extract_patent_numbers(content, True)
+        d = ','.join(patent_info)
         
     
         ##########################################
         # 生成更新的sql and 执行
         ##########################################
-        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{extract_case_num_column}", case_number_arr = "{case_number_arr_json}", title_case_arr="{a}",  content_case_arr="{b}", origin_case_arr="{c}", extract_court="{court_info}"  WHERE id = {rid}'
+        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{extract_case_num_column}", case_number_arr = "{case_number_arr_json}", title_case_arr="{a}",  content_case_arr="{b}", origin_case_arr="{c}", extract_court="{court_info}", patent_arr="{d}"  WHERE id = {rid}'
         update_sql_arr.append(update_sql)
 
 
@@ -193,7 +200,7 @@ def main():
     # print(find_case_numbers("TRO案例24-cv-12815：Nanoblock 积木商标维权！"))
 
     
-    result = update_is_multi_case_number_and_court_info(client, account_id, database_id)
+    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id)
     print(f"共处理 {len(result)} 条")
     for row in result:
         cases = row.get("case_numbers", [])
