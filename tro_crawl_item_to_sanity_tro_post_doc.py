@@ -353,8 +353,6 @@ def create_sanity_doc(rows: list, project_id: str, dataset: str, token: str, dry
     return created
 
 
-
-
 def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number):
     """执行 SQL：从 tro_crawl_item_tb 根据case_number把信息获取回来"""
     sql = f"""
@@ -454,7 +452,7 @@ def upload_sanity_doc(sanity_project, token, dataset, doc):
 
 
 
-def select_case_number_by_updated_at(client, account_id, database_id, updated_at = '1900-01-01'):
+def select_case_number_by_updated_at(client, account_id, database_id, updated_at = '1900-01-01', limit=100000):
     sql = f"""
             select
             *
@@ -476,7 +474,7 @@ def select_case_number_by_updated_at(client, account_id, database_id, updated_at
             group by extract_case_number
             ) tmp
             order by max_updated_at desc
-            limit 100
+            limit {limit}
     """
     resp = client.d1.database.query(
         database_id=database_id,
@@ -516,17 +514,19 @@ def main():
     client = Cloudflare(api_token=token)
 
     
-    rows = select_case_number_by_updated_at(client, account_id, database_id)
+    rows = select_case_number_by_updated_at(client, account_id, database_id, limit=30)
     print(f"共 {len(rows)} 条")
     for i, row in enumerate[dict[Any, Any]](rows):
-        print(f"  [{i+1}] , extract_case_number={row.get('extract_case_number')}")
-        # doc = create_sanity_doc_by_case_number(client, account_id,  database_id, "2025-cv-00335")
-
-        # if args.upload:
-        #     if not sanity_project or not sanity_token:
-        #         print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
-        #         return 
-        #     upload_sanity_doc(sanity_project, sanity_dataset, sanity_token, doc)
+        extract_case_number = row.get('extract_case_number')
+        print(f"[{i+1}] , extract_case_number={extract_case_number}")
+        if extract_case_number is None:
+            continue
+        doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
+        if args.upload:
+            if not sanity_project or not sanity_token:
+                print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
+                return 
+            upload_sanity_doc(sanity_project, sanity_dataset, sanity_token, doc)
         
     # create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
     # rows = run_select_join(client, account_id, database_id, args.source_type)
