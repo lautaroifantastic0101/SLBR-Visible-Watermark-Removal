@@ -77,10 +77,20 @@ def update_is_multi_case_number(client, account_id, database_id):
     for row in rows:
         cnt += 1
         rid, content, title, case_number, gemini_ai_resp = row["id"], row["content"], row['title'], row['case_number'], row['gemini_ai_resp']
+
+        # 抓取的内容中存在case number
         content_case_numbers = find_case_numbers(content)
+
+        # title 中存在case number
         title_case_number = find_case_numbers(title) 
+
+        # 抓取字段中存在case number
         case_number_list = find_case_numbers(case_number)
 
+
+        ##########################################
+        # 计算is_multi字段数值
+        ##########################################
         is_multi = "0"
         if "集合" in title or is_gemini_ai_resp_array(gemini_ai_resp):
             is_multi = "1"
@@ -100,12 +110,28 @@ def update_is_multi_case_number(client, account_id, database_id):
         # if len(content_case_numbers) > 15:
         #     print(rid)
 
-        case_numbers = content_case_numbers + title_case_number + case_number_list
+        # case_numbers = content_case_numbers + title_case_number + case_number_list
         # case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
-        case_number_arr_json = ','.join(case_numbers)
         title_case_number_json = ','.join(title_case_number)
-        results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_numbers})
-        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{title_case_number_json}", case_number_arr = "{case_number_arr_json}" WHERE id = {rid}'
+
+        case_num_json = {'content_case_numbers': content_case_numbers, 'title_case_number': title_case_number,
+                         'origin_case_number': case_number_list}
+        
+        results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_num_json})
+        case_number_arr_json = json.dumps(case_num_json) 
+
+        ##########################################
+        # 计算extract_case_number字段逻辑
+        ##########################################
+        extract_case_num_column = ''
+        if case_number_list is not None and len(case_number_list) > 0:
+            extract_case_num_column = case_number_list[0]
+        elif title_case_number is not None and len(title_case_number) > 0:
+            extract_case_num_column = title_case_number[0]
+        elif content_case_numbers is not None and len(content_case_numbers) > 0:
+            extract_case_num_column = content_case_numbers[0]
+            
+        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{extract_case_num_column}", case_number_arr = "{case_number_arr_json}" WHERE id = {rid}'
         update_sql_arr.append(update_sql)
 
 
