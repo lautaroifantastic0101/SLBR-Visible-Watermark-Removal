@@ -417,32 +417,75 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
     if not resp.result or not resp.result[0].results:
         return []
     # return [{"id": row["id"], "patent_arr": row["patent_arr"] or "", "title": row["title"] or "", "case_number_arr": row["case_number_arr"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or ""} for row in resp.result[0].results]
-    return [dict(row) for row in resp.result[0].results]
+    return [dict[Any, Any](row) for row in resp.result[0].results]
 
 
-def create_sanity_doc_by_case_number(client, account_id, database_id, sanity_project, sanity_dataset, sanity_token, case_number: str):
+def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
     "根据case number查询对应的rows，并且返回一个组装好的sanity doc"
     rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
     # print(json.dumps(rows))
     if len(rows) > 0:
         doc = row_to_tro_post_doc(rows[0])
-        print(json.dumps(doc))
-        upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
+        return doc
+        # print(json.dumps(doc))
+        # upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
 
 
 
-def upload_sanity_doc(sanity_project, token, dataset, doc, dry_run: bool = False):
+def upload_sanity_doc(sanity_project, token, dataset, doc):
+    """上传doc文档到sanity_project
+
+    Args:
+        sanity_project (_type_): _description_
+        token (_type_): _description_
+        dataset (_type_): _description_
+        doc (_type_): _description_
+        dry_run (bool, optional): _description_. Defaults to False.
+    """
     payload = {"mutations": [{"createOrReplace": {"_type": "tro_post", **doc}}]}
     base = f"https://{sanity_project}.api.sanity.io/v2022-03-07/data/mutate/{dataset}"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    if dry_run:
-        print(f"  [dry_run]  caseNumber={doc.get('caseNumber')} title={doc.get('title', '')[:40]}...")
+    print(f"  [dry_run]  caseNumber={doc.get('caseNumber')} title={doc.get('title', '')[:40]}...")
     try:
         r = requests.post(base, json=payload, headers=headers, timeout=30)
         r.raise_for_status()
     except Exception as e:
         print( "caseNumber:", doc.get("caseNumber"), "error", str(e))
 
+
+
+def select_case_number_by_updated_at(client, account_id, database_id, updated_at = '1900-01-01'):
+    sql = f"""
+            select
+            *
+            from (
+            select
+                extract_case_number,
+                max(updated_at) as max_updated_at
+            from tro_crawl_item_tb
+            where
+                is_multi_case_number = 0
+                and updated_at >= "1900-01-01"
+                and source_type in (
+                'CifTRONewsItem',
+                'MaijiaxingiquTRONewsItem',
+                'QqdipTROItem',
+                'RuiguanTROItem',
+                'ZlvywTROItem'
+                )
+            group by extract_case_number
+            ) tmp
+            order by max_updated_at desc
+            limit 100
+    """
+    resp = client.d1.database.query(
+        database_id=database_id,
+        account_id=account_id,
+        sql=sql.strip(),
+    )
+    if not resp.result or not resp.result[0].results:
+        return []
+    return [dict[Any, Any](row) for row in resp.result[0].results]
 
 
 def main():
@@ -471,21 +514,22 @@ def main():
 
     from cloudflare import Cloudflare
     client = Cloudflare(api_token=token)
-    create_sanity_doc_by_case_number(client, account_id,  database_id, sanity_project, sanity_dataset, sanity_token,  "2025-cv-00335")
 
+    
+    rows = select_case_number_by_updated_at(client, account_id, database_id)
+    print(f"共 {len(rows)} 条")
+    for i, row in enumerate[dict[Any, Any]](rows):
+        print(f"  [{i+1}] , extract_case_number={row.get('extract_case_number')}")
+        # doc = create_sanity_doc_by_case_number(client, account_id,  database_id, "2025-cv-00335")
+
+        # if args.upload:
+        #     if not sanity_project or not sanity_token:
+        #         print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
+        #         return 
+        #     upload_sanity_doc(sanity_project, sanity_dataset, sanity_token, doc)
+        
+    # create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
     # rows = run_select_join(client, account_id, database_id, args.source_type)
-    # print(f"共 {len(rows)} 条")
-    # for i, row in enumerate[dict[Any, Any]](rows):
-    #     print(f"  [{i+1}] id={row.get('id')}, origin_article_id={row.get('origin_article_id')}, extract_case_number={row.get('extract_case_number')}")
-    # # if len(rows) > 5:
-    # #     print(f"  ... 其余 {len(rows) - 5} 条")
-    # if args.upload and rows:
-    #     if not sanity_project or not sanity_token:
-    #         print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
-    #         return rows
-    #     print("上传到 Sanity (tro_post)...")
-    #     create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
-    # return rows
 
 
 if __name__ == "__main__":
