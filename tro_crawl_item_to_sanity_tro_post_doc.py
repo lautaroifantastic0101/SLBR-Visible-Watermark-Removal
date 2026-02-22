@@ -516,7 +516,7 @@ def main():
     client = Cloudflare(api_token=token)
 
     
-    rows = select_case_number_by_updated_at(client, account_id, database_id, limit=30)
+    rows = select_case_number_by_updated_at(client, account_id, database_id, limit=500)
     print(f"共 {len(rows)} 条")
     for i, row in enumerate[dict[Any, Any]](rows):
         extract_case_number = row.get('extract_case_number')
