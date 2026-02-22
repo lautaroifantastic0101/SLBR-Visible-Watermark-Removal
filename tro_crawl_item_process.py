@@ -117,7 +117,7 @@ def update_is_multi_case_number(client, account_id, database_id):
         case_num_json = {'content_case_numbers': content_case_numbers, 'title_case_number': title_case_number,
                          'origin_case_number': case_number_list}
         
-        results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": case_num_json})
+        results.append({"id": rid, "is_multi_case_number": is_multi, "case_numbers": content_case_numbers+title_case_number+case_number_list})
         case_number_arr_json = json.dumps(case_num_json) 
 
         ##########################################
@@ -130,7 +130,12 @@ def update_is_multi_case_number(client, account_id, database_id):
             extract_case_num_column = title_case_number[0]
         elif content_case_numbers is not None and len(content_case_numbers) > 0:
             extract_case_num_column = content_case_numbers[0]
-            
+
+        
+    
+        ##########################################
+        # 生成更新的sql and 执行
+        ##########################################
         update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{extract_case_num_column}", case_number_arr = "{case_number_arr_json}" WHERE id = {rid}'
         update_sql_arr.append(update_sql)
 
