@@ -364,6 +364,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         a.title,
         a.case_number_arr,
         a.extract_case_number,
+        a.source_type,
         b.crawl_item AS basic_info,
         c.crawl_item AS timeline_info,
         d.new_url_arr,
@@ -375,6 +376,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
                     patent_arr, 
                     case_number_arr ,
                     extract_case_number,
+                    source_type,
                     COALESCE(json_extract(crawl_item, '$.title'), '') as title
             FROM tro_crawl_item_tb
             where extract_case_number = "{case_number}"
@@ -419,16 +421,73 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
     return [dict[Any, Any](row) for row in resp.result[0].results]
 
 
+def merge_doc_arr(doc_arr: list) -> dict:
+    """
+    合并多个 tro_post doc 为一个。
+    - 数组类型字段：合并所有 doc 的该字段（列表拼接，去重保持顺序）。
+    - 字符串/其他类型：取第一个非空值。
+    """
+    if not doc_arr:
+        return {}
+    if len(doc_arr) == 1:
+        return doc_arr[0]
+
+    all_keys = set()
+    for d in doc_arr:
+        all_keys.update(d.keys())
+
+    merged = {}
+    for key in all_keys:
+        # if key == 'brand_info':
+        #     continue
+
+        
+        
+        values = [d.get(key) for d in doc_arr if d.get(key) is not None]
+        if not values:
+            continue
+        # 若任一值为 list，则按数组合并（拼接，元素为可哈希时去重）
+        if any(isinstance(v, list) for v in values):
+            arr = []
+            for v in values:
+                if isinstance(v, list):
+                    arr.extend(v)
+                else:
+                    arr.append(v)
+            if arr and all(type(x) in (str, int, float, bool) or x is None for x in arr):
+                arr = list(dict.fromkeys(arr))
+            merged[key] = arr if arr else None
+        else:
+            # 字符串或标量：取第一个非空
+            for v in values:
+                if v != "" and v is not None:
+                    merged[key] = v
+                    break
+            else:
+                merged[key] = values[0]
+    return {k: v for k, v in merged.items() if v is not None}
+
+
 def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
     "根据case number查询对应的rows，并且返回一个组装好的sanity doc"
     rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
-    # print(json.dumps(rows))
-    if len(rows) > 0:
+    doc_arr = []
+    for row in rows:
         try:
-            doc = row_to_tro_post_doc(rows[0])
-            return doc
+            doc = row_to_tro_post_doc(row)
+            doc_arr.append(doc)
         except Exception as e:
-            print( "caseNumber:", case_number, "error", str(e))
+            print("caseNumber:", case_number, "error", str(e))
+
+    if len(doc_arr) > 1:
+        return merge_doc_arr(doc_arr)
+    elif len(doc_arr) == 1:
+        return doc_arr[0]
+    return None 
+            
+        
+    
+    
         # print(json.dumps(doc))
 
 
@@ -515,20 +574,28 @@ def main():
     from cloudflare import Cloudflare
     client = Cloudflare(api_token=token)
 
+
+
+    doc = create_sanity_doc_by_case_number(client, account_id,  database_id, "2025-cv-01909")
+    upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
+
     
-    rows = select_case_number_by_updated_at(client, account_id, database_id, limit=500)
-    print(f"共 {len(rows)} 条")
-    for i, row in enumerate[dict[Any, Any]](rows):
-        extract_case_number = row.get('extract_case_number')
-        print(f"[{i+1}] , extract_case_number={extract_case_number}")
-        if extract_case_number is None:
-            continue
-        doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
-        if args.upload and doc is not None:
-            if not sanity_project or not sanity_token:
-                print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
-                return 
-            upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
+    
+    
+    
+    # rows = select_case_number_by_updated_at(client, account_id, database_id, limit=500)
+    # print(f"共 {len(rows)} 条")
+    # for i, row in enumerate[dict[Any, Any]](rows):
+    #     extract_case_number = row.get('extract_case_number')
+    #     print(f"[{i+1}] , extract_case_number={extract_case_number}")
+    #     if extract_case_number is None:
+    #         continue
+    #     doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
+    #     if args.upload and doc is not None:
+    #         if not sanity_project or not sanity_token:
+    #             print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
+    #             return 
+    #         upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
         
     # create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
     # rows = run_select_join(client, account_id, database_id, args.source_type)
