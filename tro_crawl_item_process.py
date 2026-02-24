@@ -207,7 +207,8 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id
                 )
             except Exception as e:
                 print("sql:", "; ".join(update_sql_arr)[:200], "...")
-                results[-1]["error"] = str(e)
+                print(str(e))
+                # results[-1]["error"] = str(e)
             finally:
                 update_sql_arr = []
                 update_params_arr = []
