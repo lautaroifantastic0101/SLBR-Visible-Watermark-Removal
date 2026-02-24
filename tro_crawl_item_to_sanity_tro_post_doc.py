@@ -339,7 +339,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "case_progress": case_progress,
         "courtState":court_state,
         "sourceType": row.get("source_type"),
-        "patentList": _parse_patent_list(row.get("patent_arr"))
+        "patentList": json.dumps(_parse_patent_list(row.get("patent_arr")))
     }
     return {k: v for k, v in doc.items() if v is not None}
 
