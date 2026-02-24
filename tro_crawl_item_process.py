@@ -209,8 +209,8 @@ def main():
 
     
     # for debug
-    # result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=364667)
-    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id)
+    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=34)
+    # result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id)
     print(f"共处理 {len(result)} 条")
     for row in result:
         cases = row.get("case_numbers", [])

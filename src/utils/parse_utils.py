@@ -316,6 +316,7 @@ def extract_brand_name(gemini_ai_resp):
         if gemini_ai_resp_json is None:
             return None, None
         else:
+            print(type(gemini_ai_resp_json.get("品牌方信息")))
             return gemini_ai_resp_json.get("品牌方"), gemini_ai_resp_json.get("品牌方信息")
     except Exception as e:
         print(f"error: {e} . {gemini_ai_resp}")
