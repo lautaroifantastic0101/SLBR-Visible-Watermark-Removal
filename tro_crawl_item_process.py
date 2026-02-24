@@ -80,9 +80,9 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id
     if not rows:
         return []
     results = []
-    update_sql = "UPDATE tro_crawl_item_tb SET is_multi_case_number = ?, case_number_arr = ? WHERE id = ?"
     cnt = 0
     update_sql_arr = []
+    update_params_arr = []
     for row in rows:
         cnt += 1
         rid, content, title, case_number, gemini_ai_resp = row["id"], row["content"], row['title'], row['case_number'], row['gemini_ai_resp']
@@ -169,25 +169,48 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id
         
     
         ##########################################
-        # 生成更新的sql and 执行
+        # 生成更新的 sql 参数并加入批次（参数化执行，避免注入与引号问题）
         ##########################################
-        update_sql = f"UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = '{extract_case_num_column}', case_number_arr = '{case_number_arr_json}', title_case_arr='{a}',  content_case_arr='{b}', origin_case_arr='{c}', extract_court='{court_info}', patent_arr='{d}', brand='{brand}', brand_info='{brand_info}'  WHERE id = {rid}"
-        update_sql_arr.append(update_sql)
-
+        one_sql = (
+            "UPDATE tro_crawl_item_tb SET "
+            "is_multi_case_number = ?, extract_case_number = ?, case_number_arr = ?, "
+            "title_case_arr = ?, content_case_arr = ?, origin_case_arr = ?, "
+            "extract_court = ?, patent_arr = ?, brand = ?, brand_info = ? "
+            "WHERE id = ?"
+        )
+        update_sql_arr.append(one_sql)
+        update_params_arr.append(
+            (
+                is_multi,
+                extract_case_num_column or "",
+                case_number_arr_json or "",
+                a or "",
+                b or "",
+                c or "",
+                court_info or "",
+                d or "",
+                brand or "",
+                brand_info or "",
+                rid,
+            )
+        )
 
         if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
-            # print(f"进度: {cnt}/{len(rows)} ({cnt/len(rows)*100:.2f}%)")
             try:
+                batch_sql = "; ".join(update_sql_arr)
+                batch_params = [p for params in update_params_arr for p in params]
                 client.d1.database.query(
                     database_id=database_id,
                     account_id=account_id,
-                    sql=';'.join(update_sql_arr),
+                    sql=batch_sql,
+                    params=batch_params,
                 )
             except Exception as e:
-                print(';'.join(update_sql_arr))
+                print("sql:", "; ".join(update_sql_arr)[:200], "...")
                 results[-1]["error"] = str(e)
             finally:
                 update_sql_arr = []
+                update_params_arr = []
     return results
 
 def main():
