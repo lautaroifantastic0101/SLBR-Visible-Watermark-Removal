@@ -162,13 +162,13 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id
         ##########################################
         # 提取brand信息
         ##########################################
-        brand = extract_brand_name(gemini_ai_resp)
+        brand, brand_info = extract_brand_name(gemini_ai_resp)
         
     
         ##########################################
         # 生成更新的sql and 执行
         ##########################################
-        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{extract_case_num_column}", case_number_arr = "{case_number_arr_json}", title_case_arr="{a}",  content_case_arr="{b}", origin_case_arr="{c}", extract_court="{court_info}", patent_arr="{d}", brand="{brand}"  WHERE id = {rid}'
+        update_sql = f'UPDATE tro_crawl_item_tb SET is_multi_case_number = {is_multi}, extract_case_number = "{extract_case_num_column}", case_number_arr = "{case_number_arr_json}", title_case_arr="{a}",  content_case_arr="{b}", origin_case_arr="{c}", extract_court="{court_info}", patent_arr="{d}", brand="{brand}", brand_info="{brand_info}"  WHERE id = {rid}'
         update_sql_arr.append(update_sql)
 
 
@@ -217,7 +217,7 @@ def main():
             msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
         if err:
             msg += f", error={err}"
-        print(msg)
+            print(msg)
     return result
 
 
