@@ -196,6 +196,24 @@ def _parse_progress(timeline_info) -> str:
     
 
 
+def _parse_patent_list(raw_string):
+    """解析处理patent list信息
+
+    Args:
+        raw_string (_type_): _description_
+    """
+    patent_list = []
+    for pl in raw_string.split(','): 
+        ob = {"patentNumber":  pl, "title": "", "type": "外观专利"}
+        patent_list.append(ob)
+        
+    return patent_list
+        
+    
+    
+    
+    
+
 
 def row_to_tro_post_doc(row: dict) -> dict:
     """综合 row（a 表 + case_detail_info + case_detail_info2 + gemini_ai_resp）得到 Sanity tro_post 文档。"""
@@ -321,7 +339,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "case_progress": case_progress,
         "courtState":court_state,
         "sourceType": row.get("source_type"),
-        "patentList": row.get("patent_arr")
+        "patentList": _parse_patent_list(row.get("patent_arr"))
     }
     return {k: v for k, v in doc.items() if v is not None}
 
