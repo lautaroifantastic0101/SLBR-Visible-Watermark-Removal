@@ -296,4 +296,17 @@ def is_gemini_ai_resp_array(gemini_ai_resp) -> bool:
         return False
 
 
+def extract_brand_name(gemini_ai_resp) -> str:
+    if not gemini_ai_resp or not isinstance(gemini_ai_resp, str):
+        return ""
+    try:
+        gemini_ai_resp_json = parse_json_text(gemini_ai_resp)
+        if gemini_ai_resp_json is None:
+            return ""
+        else:
+            return gemini_ai_resp_json.get("品牌方")
+    except Exception as e:
+        print(f"error: {e} . {gemini_ai_resp}")
+        return ""
+
 
