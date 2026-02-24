@@ -33,7 +33,7 @@ def normalize_case_number(raw: str) -> str:
     num = num_str.zfill(5)
     return f"{year}-cv-{num}"
 
-def select_crawl_item_content(client, account_id, database_id):
+def select_crawl_item_content(client, account_id, database_id, id=None):
     """执行 SQL：从 tro_crawl_item_tb 查询 id 与 title+content 拼接内容，返回结果列表。"""
     sql = """
     SELECT
@@ -45,6 +45,8 @@ def select_crawl_item_content(client, account_id, database_id):
       
     FROM tro_crawl_item_tb
     """
+    if id is not None:
+        sql = sql + f" where id = {id}"
     resp = client.d1.database.query(
         database_id=database_id,
         account_id=account_id,
@@ -66,14 +68,14 @@ def find_case_numbers(content: str):
     return list[str](dict.fromkeys(normalized))
 
 
-def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id):
+def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=None):
     """
     根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）
     更新表中的multi_case相关字段信息；
     更新表中court_info字段
     更新表中brand字段信息
     """
-    rows = select_crawl_item_content(client, account_id, database_id)
+    rows = select_crawl_item_content(client, account_id, database_id, id=id)
     if not rows:
         return []
     results = []
@@ -205,7 +207,7 @@ def main():
     # print(find_case_numbers("TRO案例24-cv-12815：Nanoblock 积木商标维权！"))
 
     
-    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id)
+    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=1)
     print(f"共处理 {len(result)} 条")
     for row in result:
         cases = row.get("case_numbers", [])
