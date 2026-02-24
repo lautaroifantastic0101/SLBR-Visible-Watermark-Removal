@@ -203,8 +203,9 @@ def _parse_patent_list(raw_string):
         raw_string (_type_): _description_
     """
     patent_list = []
-    print(raw_string)
+    print(raw_string.split(','))
     for pl in raw_string.split(','): 
+        print(pl)
         ob = {"patentNumber":  pl, "title": "", "type": "外观专利"}
         patent_list.append(ob)
         
