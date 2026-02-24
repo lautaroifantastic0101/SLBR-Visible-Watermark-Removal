@@ -4,6 +4,7 @@ import json
 import os
 import re
 from resource import getrlimit
+from turtle import update
 from cloudflare import Cloudflare
 
 from src.utils.parse_utils import extract_brand_name, extract_patent_numbers, extract_us_state, is_gemini_ai_resp_array
@@ -184,6 +185,7 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id
                     sql=';'.join(update_sql_arr),
                 )
             except Exception as e:
+                print(';'.join(update_sql_arr))
                 results[-1]["error"] = str(e)
             finally:
                 update_sql_arr = []
@@ -208,8 +210,8 @@ def main():
 
     
     # for debug
-    # result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=68)
-    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id)
+    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=364667)
+    # result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id)
     print(f"共处理 {len(result)} 条")
     for row in result:
         cases = row.get("case_numbers", [])
