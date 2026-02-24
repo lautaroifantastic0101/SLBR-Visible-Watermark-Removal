@@ -317,8 +317,8 @@ def extract_brand_name(gemini_ai_resp):
             return None, None
         else:
             if isinstance(gemini_ai_resp_json.get("品牌方信息"), dict):
-                return gemini_ai_resp_json.get("品牌方"), json.dumps(gemini_ai_resp_json.get("品牌方信息"))
-            return gemini_ai_resp_json.get("品牌方"), gemini_ai_resp_json.get("品牌方信息")
+                return repr(gemini_ai_resp_json.get("品牌方")), json.dumps(gemini_ai_resp_json.get("品牌方信息"))
+            return repr(gemini_ai_resp_json.get("品牌方")), gemini_ai_resp_json.get("品牌方信息")
     except Exception as e:
         print(f"error: {e} . {gemini_ai_resp}")
         return None, None
