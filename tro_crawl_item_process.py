@@ -16,7 +16,7 @@ from src.utils.parse_utils import extract_brand_name, extract_patent_numbers, ex
 CASE_NUMBER_PATTERN = re.compile(r"(\d{2,4})-cv-(\d+)", re.IGNORECASE)
 
 # 每批执行的 UPDATE 条数
-UPDATE_BATCH_SIZE = 1000
+UPDATE_BATCH_SIZE = 10
 
 
 def normalize_case_number(raw: str) -> str:
@@ -176,8 +176,7 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id
 
 
         if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
-            print(f"进度: {cnt}/{len(rows)} ({cnt/len(rows)*100:.2f}%)")
-            # print(';'.join(update_sql_arr))
+            # print(f"进度: {cnt}/{len(rows)} ({cnt/len(rows)*100:.2f}%)")
             try:
                 client.d1.database.query(
                     database_id=database_id,
