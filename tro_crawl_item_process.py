@@ -15,7 +15,7 @@ from src.utils.parse_utils import extract_brand_name, extract_patent_numbers, ex
 CASE_NUMBER_PATTERN = re.compile(r"(\d{2,4})-cv-(\d+)", re.IGNORECASE)
 
 # 每批执行的 UPDATE 条数
-UPDATE_BATCH_SIZE = 50
+UPDATE_BATCH_SIZE = 1000
 
 
 def normalize_case_number(raw: str) -> str:
