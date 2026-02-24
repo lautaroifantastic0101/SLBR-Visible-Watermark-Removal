@@ -336,14 +336,14 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "lawFirm": law_firm,
         "lawType": law_type,
         "courtInfo": court_info,
-        "relatedCases": json.dumps(related),
+        "relatedCases": related,
         "goodsCategories": goods_categories,
-        "images": json.dumps(images, ensure_ascii=False) if images else None,  # {"type_a": ["url1","url2"], ...}
+        "images": images,  # {"type_a": ["url1","url2"], ...}
         "timeline": timelines,
         "case_progress": case_progress,
         "courtState":court_state,
         "sourceType": row.get("source_type"),
-        "patentList": json.dumps(_parse_patent_list(row.get("patent_arr")))
+        "patentList": _parse_patent_list(row.get("patent_arr"))
     }
     return {k: v for k, v in doc.items() if v is not None}
 
@@ -487,7 +487,16 @@ def merge_doc_arr(doc_arr: list) -> dict:
                     break
             else:
                 merged[key] = values[0]
-    return {k: v for k, v in merged.items() if v is not None}
+    # list / dict 转为 JSON 字符串再输出
+    out = {}
+    for k, v in merged.items():
+        if v is None:
+            continue
+        if isinstance(v, (list, dict)):
+            out[k] = json.dumps(v, ensure_ascii=False)
+        else:
+            out[k] = v
+    return out
 
 
 def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
