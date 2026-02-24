@@ -1,6 +1,8 @@
 import json
 import re
 
+from numpy import isin
+
 # -----------------------------------------------------------------------------
 # 从文本中提取并解析 JSON
 # -----------------------------------------------------------------------------
@@ -297,10 +299,20 @@ def is_gemini_ai_resp_array(gemini_ai_resp) -> bool:
 
 
 def extract_brand_name(gemini_ai_resp):
+    """从ai返回结果中，解析出来品牌和品牌的信息
+
+    Args:
+        gemini_ai_resp (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     if not gemini_ai_resp or not isinstance(gemini_ai_resp, str):
         return None, None
     try:
         gemini_ai_resp_json = parse_json_text(gemini_ai_resp)
+        if isinstance(gemini_ai_resp_json, list):
+            return None, None
         if gemini_ai_resp_json is None:
             return None, None
         else:
