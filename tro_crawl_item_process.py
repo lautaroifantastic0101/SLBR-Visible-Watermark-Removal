@@ -207,7 +207,9 @@ def main():
     # print(find_case_numbers("TRO案例24-cv-12815：Nanoblock 积木商标维权！"))
 
     
-    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=1)
+    # for debug
+    # result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=1)
+    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id)
     print(f"共处理 {len(result)} 条")
     for row in result:
         cases = row.get("case_numbers", [])
