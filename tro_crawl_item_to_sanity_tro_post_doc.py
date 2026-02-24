@@ -203,6 +203,8 @@ def _parse_patent_list(raw_string):
         raw_string (_type_): _description_
     """
     patent_list = []
+    if raw_string is None or len(raw_string) < 2:
+        return []
     print(raw_string.split(','))
     for pl in raw_string.split(','): 
         print(pl)
