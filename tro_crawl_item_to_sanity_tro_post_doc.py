@@ -603,7 +603,7 @@ def select_case_number_by_updated_at(client, account_id, database_id, start_pt= 
             group by extract_case_number
             ) tmp
             
-            order by max_updated_at desc
+            order by max_updated_at 
             limit {limit}
     """
     print(sql)
