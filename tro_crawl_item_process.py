@@ -88,7 +88,7 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(rows, id=None):
     results = []
     cnt = 0
     update_sql_arr = []
-    update_params_arr = []
+    # update_params_arr = []
     for row in rows:
         cnt += 1
         rid, content, title, case_number, gemini_ai_resp = row["id"], row["content"], row['title'], row['case_number'], row['gemini_ai_resp']
@@ -181,10 +181,6 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(rows, id=None):
         law_type = extract_law_type_info(gemini_ai_resp)
 
 
-        
-
-        
-    
         ##########################################
         # 生成更新的 sql 参数并加入批次（参数化执行，避免注入与引号问题）
         ##########################################
@@ -200,40 +196,23 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(rows, id=None):
 
         # update_sql_arr.append(one_sql)
         update_sql_arr.append(tmp_sql)
-        update_params_arr.append(
-            (
-                is_multi,
-                extract_case_num_column or "",
-                case_number_arr_json or "",
-                a or "",
-                b or "",
-                c or "",
-                court_info or "",
-                d or "",
-                brand or "",
-                brand_info or "",
-                rid,
-            )
-        )
-        
-        # if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
-        #     try:
-        #         batch_sql = "; ".join(update_sql_arr)
-        #         batch_params = [p for params in update_params_arr for p in params]
-        #         client.d1.database.query(
-        #             database_id=database_id,
-        #             account_id=account_id,
-        #             sql=batch_sql,
-        #             params=batch_params,
-        #         )
-        #     except Exception as e:
-        #         print("sql:", "; ".join(update_sql_arr)[:200], "...")
-        #         print(str(e))
-        #         # results[-1]["error"] = str(e)
-        #     finally:
-        #         update_sql_arr = []
-        #         update_params_arr = []
-    return update_sql_arr, update_params_arr
+        # update_params_arr.append(
+        #     (
+        #         is_multi,
+        #         extract_case_num_column or "",
+        #         case_number_arr_json or "",
+        #         a or "",
+        #         b or "",
+        #         c or "",
+        #         court_info or "",
+        #         d or "",
+        #         brand or "",
+        #         brand_info or "",
+        #         rid,
+        #     )
+        # )
+    return update_sql_arr
+    # return update_sql_arr, update_params_arr
     # return results
 
 def main():
@@ -254,7 +233,6 @@ def main():
     start_pt = args.start_pt
     end_pt = args.end_pt
     
-    
     if not all([token, account_id, database_id]):
         print("缺少 D1 配置，请提供 --cf_d1_* 或环境变量 CF_D1_API_TOKEN / CF_D1_ACCOUNT_ID / CF_D1_DATABASE_ID")
         return
@@ -268,8 +246,27 @@ def main():
     print(f"一共筛选出来行数：{len(rows)}")
 
 
-    result = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
-    print(f"共处理 {len(result)} 条")
+    update_sqls = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
+    print(f"共处理 {len(update_sqls)} 条")
+    update_sql_arr = []
+    cnt = 0
+    for sql in update_sqls:
+        update_sql_arr.append(sql)
+        cnt += 1
+        if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
+            try:
+                batch_sql = "; ".join(update_sql_arr)
+                client.d1.database.query(
+                    database_id=database_id,
+                    account_id=account_id,
+                    sql=batch_sql,
+                )
+            except Exception as e:
+                print("sql:", "; ".join(update_sql_arr)[:200], "...")
+                print(str(e))
+                # results[-1]["error"] = str(e)
+            finally:
+                update_sql_arr = []
     # for row in result:
     #     cases = row.get("case_numbers", [])
     #     multi = row.get("is_multi_case_number", "")
