@@ -240,8 +240,8 @@ def main():
     parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可通过环境变量 CF_D1_API_TOKEN 传递")
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可通过环境变量 CF_D1_ACCOUNT_ID 传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
-    parser.add_argument("--start_pt", required=False, type=int, help="处理开始点，可选")
-    parser.add_argument("--end_pt", required=False, type=int, help="处理结束点，可选")
+    parser.add_argument("--start_pt", required=False, type=str, help="处理开始点，可选")
+    parser.add_argument("--end_pt", required=False, type=str, help="处理结束点，可选")
     parser.add_argument("--row_ids", required=False, help="以逗号分隔的待处理的row id列表，如: 123,456,789")
     args = parser.parse_args()
 
