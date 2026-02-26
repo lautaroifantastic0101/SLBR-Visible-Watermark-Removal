@@ -326,7 +326,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # relatedCases：gemini 关联案件 > case_number_arr
     
     # related = _related_cases_list(gemini and gemini.get("关联案件")) if gemini else []
-    related = [_case_number_year_to_2_digits(i) for i in relate_case_num_arr]
+    related = json.dumps([_case_number_year_to_2_digits(i) for i in relate_case_num_arr])
     # if not related and row.get("case_number_arr"):
         # related = _related_cases_list(row["case_number_arr"])
     # related = [x for x in related if x] or None
@@ -356,6 +356,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
             if key not in images:
                 images[key] = []
             images[key].append(urls[i])
+    images = json.dumps(images)
 
 
 
