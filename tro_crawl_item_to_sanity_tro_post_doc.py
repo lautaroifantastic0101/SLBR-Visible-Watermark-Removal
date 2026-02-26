@@ -291,7 +291,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
     title = f'{row.get("violation_type")}-品牌{brand}-案件{case_number}'
     
-    brand = _str(gemini and gemini.get("品牌方")) or _str(timeline_info and timeline_info.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
+    brand = _str(gemini and isinstance(gemini, dict) and  gemini.get("品牌方")) or _str(timeline_info and timeline_info.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
     # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
     if brand and not brand.isupper():
         brand = brand.title()
