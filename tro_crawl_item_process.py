@@ -232,7 +232,6 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(rows, id=None):
         #     finally:
         #         update_sql_arr = []
         #         update_params_arr = []
-    sqls = []
     return update_sql_arr, update_params_arr
     # return results
 
@@ -265,21 +264,23 @@ def main():
     # for debug
     # result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=34)
     rows = select_crawl_item_content(client, account_id, database_id, id=row_ids, start_pt=start_pt, end_pt=end_pt)
+    print(f"一共筛选出来行数：{len(rows)}")
 
-    result = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
-    print(f"共处理 {len(result)} 条")
-    for row in result:
-        cases = row.get("case_numbers", [])
-        multi = row.get("is_multi_case_number", "")
-        err = row.get("error", "")
-        # if multi == "1" or len(cases) >= 10:
-        msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
-        if cases:
-            msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
-        if err:
-            msg += f", error={err}"
-            print(msg)
-    return result
+
+    # result = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
+    # print(f"共处理 {len(result)} 条")
+    # for row in result:
+    #     cases = row.get("case_numbers", [])
+    #     multi = row.get("is_multi_case_number", "")
+    #     err = row.get("error", "")
+    #     # if multi == "1" or len(cases) >= 10:
+    #     msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
+    #     if cases:
+    #         msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
+    #     if err:
+    #         msg += f", error={err}"
+    #         print(msg)
+    # return result
 
 if __name__ == "__main__":
     main()
