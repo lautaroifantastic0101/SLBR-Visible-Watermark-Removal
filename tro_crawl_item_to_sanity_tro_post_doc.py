@@ -626,6 +626,7 @@ def main():
     parser.add_argument("--sanity_token", required=False, help="Sanity 写权限 Token，可通过环境变量 SANITY_TOKEN 传递")
     parser.add_argument("--start_pt", default="1900-01-01", help="筛选起始 updated_at 日期，格式如 2024-01-01，默认1900-01-01")
     parser.add_argument("--end_pt", default="2099-01-01", help="筛选结束 updated_at 日期，格式如 2024-12-31，默认2099-01-01")
+    parser.add_argument("--limit", type=int, default=100000, help="最多返回多少条（默认100000）")
     args = parser.parse_args()
 
     token = args.cf_d1_api_token or os.getenv("CF_D1_API_TOKEN")
@@ -637,6 +638,7 @@ def main():
 
     start_pt = args.start_pt
     end_pt = args.end_pt
+    limit = args.limit
 
 
     if not all([token, account_id, database_id]):
@@ -651,7 +653,7 @@ def main():
     # 【筛选】出来哪些case number需要更新的
     ######################################################
     if start_pt and end_pt:
-        rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt)
+        rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt, limit=limit)
     else:
         rows = select_case_number_by_updated_at(client, account_id, database_id)
     for row in rows:
