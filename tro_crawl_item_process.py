@@ -6,8 +6,9 @@ import re
 from resource import getrlimit
 from turtle import update
 from cloudflare import Cloudflare
+from numpy.random.mtrand import f
 
-from src.utils.parse_utils import extract_brand_name, extract_patent_numbers, extract_us_state, is_gemini_ai_resp_array
+from src.utils.parse_utils import extract_brand_name, extract_law_type_info, extract_patent_numbers, extract_us_state, is_gemini_ai_resp_array
 
 
 
@@ -34,7 +35,7 @@ def normalize_case_number(raw: str) -> str:
     num = num_str.zfill(5)
     return f"{year}-cv-{num}"
 
-def select_crawl_item_content(client, account_id, database_id, id=None):
+def select_crawl_item_content(client, account_id, database_id, id=None, start_pt=None, end_pt=None):
     """执行 SQL：从 tro_crawl_item_tb 查询 id 与 title+content 拼接内容，返回结果列表。"""
     sql = """
     SELECT
@@ -43,11 +44,16 @@ def select_crawl_item_content(client, account_id, database_id, id=None):
       COALESCE(json_extract(crawl_item, '$.content'), '') AS content,
       COALESCE(json_extract(crawl_item, '$.case_number'), '') AS case_number,
       gemini_ai_resp
-      
     FROM tro_crawl_item_tb
+    WHERE source_type in ( 'CifTRONewsItem', 'MaijiaxingiquTRONewsItem', 'QqdipTROItem', 'RuiguanTROItem')
+    and gemini_ai_resp is not null 
     """
     if id is not None:
-        sql = sql + f" where id = {id}"
+        sql = sql + f" and id IN ({id})"
+    
+    if start_pt and end_pt:
+        sql = sql + f" and created_at >= {start_pt} and created_at <= {end_pt}"
+    
     resp = client.d1.database.query(
         database_id=database_id,
         account_id=account_id,
@@ -69,14 +75,13 @@ def find_case_numbers(content: str):
     return list[str](dict.fromkeys(normalized))
 
 
-def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=None):
+def update_is_multi_case_number_and_court_info_and_patent_arr(rows, id=None):
     """
     根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）
     更新表中的multi_case相关字段信息；
     更新表中court_info字段
     更新表中brand字段信息
     """
-    rows = select_crawl_item_content(client, account_id, database_id, id=id)
     if not rows:
         return []
     results = []
@@ -165,20 +170,35 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id
         ##########################################
         # 提取brand信息
         ##########################################
-        brand, brand_info = extract_brand_name(gemini_ai_resp)
+        brand, brand_info, brand_website = extract_brand_name(gemini_ai_resp)
+        # print(brand, brand_info)
+
+        
+        ##########################################
+        # 维权信息处理
+        ##########################################
+        law_type = extract_law_type_info(gemini_ai_resp)
+
+
+        
+
         
     
         ##########################################
         # 生成更新的 sql 参数并加入批次（参数化执行，避免注入与引号问题）
         ##########################################
-        one_sql = (
+        tmp_sql = (
             "UPDATE tro_crawl_item_tb SET "
-            "is_multi_case_number = ?, extract_case_number = ?, case_number_arr = ?, "
-            "title_case_arr = ?, content_case_arr = ?, origin_case_arr = ?, "
-            "extract_court = ?, patent_arr = ?, brand = ?, brand_info = ? "
-            "WHERE id = ?"
+            f"is_multi_case_number = '{is_multi}', extract_case_number = '{extract_case_num_column}', case_number_arr = '{case_number_arr_json}', "
+           f"title_case_arr = '{a}', content_case_arr = '{b}', origin_case_arr = '{c}', "
+            f"extract_court = '{court_info}', patent_arr = '{d}', brand = '{brand}', brand_info = '{brand_info}', brand_website = '{brand_website}', violation_type = '{law_type}', "
+            f"updated_at = datetime('now') "
+            f"WHERE id = {rid};"
         )
-        update_sql_arr.append(one_sql)
+        # print(tmp_sql)
+
+        # update_sql_arr.append(one_sql)
+        update_sql_arr.append(tmp_sql)
         update_params_arr.append(
             (
                 is_multi,
@@ -194,47 +214,59 @@ def update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id
                 rid,
             )
         )
-
-        if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
-            try:
-                batch_sql = "; ".join(update_sql_arr)
-                batch_params = [p for params in update_params_arr for p in params]
-                client.d1.database.query(
-                    database_id=database_id,
-                    account_id=account_id,
-                    sql=batch_sql,
-                    params=batch_params,
-                )
-            except Exception as e:
-                print("sql:", "; ".join(update_sql_arr)[:200], "...")
-                print(str(e))
-                # results[-1]["error"] = str(e)
-            finally:
-                update_sql_arr = []
-                update_params_arr = []
-    return results
+        
+        # if cnt % UPDATE_BATCH_SIZE == 0 or cnt == len(rows):
+        #     try:
+        #         batch_sql = "; ".join(update_sql_arr)
+        #         batch_params = [p for params in update_params_arr for p in params]
+        #         client.d1.database.query(
+        #             database_id=database_id,
+        #             account_id=account_id,
+        #             sql=batch_sql,
+        #             params=batch_params,
+        #         )
+        #     except Exception as e:
+        #         print("sql:", "; ".join(update_sql_arr)[:200], "...")
+        #         print(str(e))
+        #         # results[-1]["error"] = str(e)
+        #     finally:
+        #         update_sql_arr = []
+        #         update_params_arr = []
+    sqls = []
+    return update_sql_arr, update_params_arr
+    # return results
 
 def main():
     parser = argparse.ArgumentParser(description="tro_crawl_item 查询与处理")
     parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可通过环境变量 CF_D1_API_TOKEN 传递")
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可通过环境变量 CF_D1_ACCOUNT_ID 传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
+    parser.add_argument("--start_pt", required=False, type=int, help="处理开始点，可选")
+    parser.add_argument("--end_pt", required=False, type=int, help="处理结束点，可选")
+    parser.add_argument("--row_ids", required=False, help="以逗号分隔的待处理的row id列表，如: 123,456,789")
     args = parser.parse_args()
 
     token = args.cf_d1_api_token or os.getenv("CF_D1_API_TOKEN")
     account_id = args.cf_d1_account_id or os.getenv("CF_D1_ACCOUNT_ID")
     database_id = args.cf_d1_database_id or os.getenv("CF_D1_DATABASE_ID")
+
+    row_ids = args.row_ids
+    start_pt = args.start_pt
+    end_pt = args.end_pt
+    
+    
     if not all([token, account_id, database_id]):
         print("缺少 D1 配置，请提供 --cf_d1_* 或环境变量 CF_D1_API_TOKEN / CF_D1_ACCOUNT_ID / CF_D1_DATABASE_ID")
         return
 
     client = Cloudflare(api_token=token)
     # print(find_case_numbers("TRO案例24-cv-12815：Nanoblock 积木商标维权！"))
-
     
     # for debug
     # result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=34)
-    result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id)
+    rows = select_crawl_item_content(client, account_id, database_id, id=row_ids, start_pt=start_pt, end_pt=end_pt)
+
+    result = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
     print(f"共处理 {len(result)} 条")
     for row in result:
         cases = row.get("case_numbers", [])
@@ -248,7 +280,6 @@ def main():
             msg += f", error={err}"
             print(msg)
     return result
-
 
 if __name__ == "__main__":
     main()

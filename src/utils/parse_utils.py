@@ -33,8 +33,10 @@ def parse_json_text(text: str):
 
     # 2) 提取 ```json ... ``` 或 ``` ... ``` 中的内容
     m = re.search(r"```(?:json)?\s*([\s\S]*?)```", s)
+    
     if m:
         raw = m.group(1).strip()
+        raw = raw.replace('\n', '')
         try:
             return json.loads(raw)
         except json.JSONDecodeError:
@@ -298,8 +300,39 @@ def is_gemini_ai_resp_array(gemini_ai_resp) -> bool:
         return False
 
 
+def extract_urls(text):
+    """
+    这个正则可以匹配大多数以 http 或 https 开头的链接
+
+    Args:
+        text (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'
+    urls = re.findall(url_pattern, text)
+    return urls
+
+def _str_ob(ob):
+    if ob is None:
+        return "" 
+    elif isinstance(ob, str):
+        return ob.replace("'", "`")
+    elif isinstance(ob, list):
+        return json.dumps(ob).replace("'", "`")
+    elif isinstance(ob, dict):
+        ret = ''
+        for k, v in ob.items():
+            ret = ret + f"{k}: {v};"
+        return ret.replace("'", "`")
+            
+            
+        
+
 def extract_brand_name(gemini_ai_resp):
     """从ai返回结果中，解析出来品牌和品牌的信息
+    因为采取的sql都是单引号，所以会在brand和brand_info文本中作去除单引号的处理
 
     Args:
         gemini_ai_resp (_type_): _description_
@@ -308,19 +341,73 @@ def extract_brand_name(gemini_ai_resp):
         _type_: _description_
     """
     if not gemini_ai_resp or not isinstance(gemini_ai_resp, str):
-        return None, None
+        return None, None, None
     try:
         gemini_ai_resp_json = parse_json_text(gemini_ai_resp)
         if isinstance(gemini_ai_resp_json, list):
-            return None, None
+            return None, None, None
         if gemini_ai_resp_json is None:
-            return None, None
+            return None, None, None
         else:
-            if isinstance(gemini_ai_resp_json.get("品牌方信息"), dict):
-                return gemini_ai_resp_json.get("品牌方"), json.dumps(gemini_ai_resp_json.get("品牌方信息"))
-            return gemini_ai_resp_json.get("品牌方"), gemini_ai_resp_json.get("品牌方信息")
+            brand_name = _str_ob(gemini_ai_resp_json.get("品牌方"))
+            brand_info = _str_ob(gemini_ai_resp_json.get("品牌方信息"))
+            urls = []
+            url = None
+            if brand_info is not None:
+                urls = list(set(extract_urls(brand_info)))
+            if len(urls) > 0:
+                print(urls)
+                url = urls[0]
+            return brand_name, brand_info, url
     except Exception as e:
         print(f"error: {e} . {gemini_ai_resp}")
-        return None, None
+        return None, None, None
 
 
+
+# 维权类型原始值 -> 标准化为：商标维权、专利维权、版权维权
+LAW_TYPE_STANDARD = ("商标维权", "专利维权", "版权维权")
+
+
+def _normalize_law_type(raw_cp) -> str:
+    """
+    将 raw_cp 标准化为 商标维权、专利维权、版权维权 三类（可多选，逗号分隔）。
+    可能输入：专利维权,版权维权,商标维权,版权,TRO临时禁令,商标和专利维权,TRO维权,IP维权,
+    全方位维权,商标及版权维权,知识产权维权,TRO,专利,肖像图维权,商标和版权,商标,商标、版权,
+    知识产权纠纷,TRO 维权,商标及版权 等。
+    """
+    if raw_cp is not None and isinstance(raw_cp, list):
+        raw_cp =  ','.join(raw_cp)
+    if raw_cp is None or not isinstance(raw_cp, str):
+        return ""
+    s = raw_cp.strip()
+    if not s:
+        return ""
+    parts = []
+    if "商标" in s or "侵权" in s:
+        parts.append("商标维权")
+    if "专利" in s:
+        parts.append("专利维权")
+    if "版权" in s or "肖像" in s:
+        parts.append("版权维权")
+
+    # 未命中上述关键词时，TRO/IP/全方位/知识产权 等视为涵盖多类，返回全部三类
+    if not parts:
+        if any(k in s for k in ("TRO", "IP", "全方位", "知识产权", "维权")):
+            return "商标维权,专利维权,版权维权"
+        return ""
+    return ",".join(dict.fromkeys(parts))
+
+
+def extract_law_type_info(gemini_ai_resp):
+    """从信息中提取案件的维权类型，并标准化为：商标维权、专利维权、版权维权。"""
+    ret = ""
+    if not gemini_ai_resp or not isinstance(gemini_ai_resp, str):
+        return None
+
+    gemini_ai_resp_json = parse_json_text(gemini_ai_resp)
+    if gemini_ai_resp_json is not None:
+        raw_cp = gemini_ai_resp_json.get("维权类型") or gemini_ai_resp_json.get("type_of_case") or gemini_ai_resp_json.get("rights_type")
+        ret = _normalize_law_type(raw_cp)
+    return ret
+ 

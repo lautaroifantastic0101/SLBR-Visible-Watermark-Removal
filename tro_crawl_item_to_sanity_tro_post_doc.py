@@ -11,9 +11,13 @@ from dotenv import load_dotenv
 import requests
 from sympy import E, EX
 
+from src.utils.config_utils import BrandManager
 from src.utils.parse_utils import extract_us_state, parse_json_text
 
 load_dotenv()
+
+
+manager = BrandManager('config/brand_info_config.xlsx')
 
 # tro_crawl_item_tb 字段（与 sql/tro_crawl_item_tb.sql 一致）
 TRO_CRAWL_ITEM_COLUMNS = [
@@ -251,7 +255,6 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
     case_number = _case_number_year_to_2_digits(case_number)
 
-    title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
     law_date_raw = _str(gemini and gemini.get("起诉日期")) or _str(timeline_info and timeline_info.get("release_time")) or _str(basic and basic.get("prosecution_time")) or _str(crawl.get("lawDate") or crawl.get("law_date"))
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
     law_from = _str(gemini and gemini.get("原告")) or _str(crawl.get("lawFrom") or crawl.get("law_from"))
@@ -263,7 +266,30 @@ def row_to_tro_post_doc(row: dict) -> dict:
     law_firm = _str(gemini and gemini.get("律所")) or _str(timeline_info and timeline_info.get("law_firm")) or _str(basic and basic.get("law_firm")) or _str(crawl.get("lawFirm") or crawl.get("law_firm"))
     if law_firm and not law_firm.isupper():
         law_firm = law_firm.title() 
-    law_type = _str(gemini and gemini.get("维权类型")) or _str(crawl.get("lawType") or crawl.get("law_type"))
+    
+    
+    ###########################################
+    # 维权类型处理
+    ###########################################  
+    # law_type = _str(gemini and gemini.get("维权类型")) or _str(crawl.get("lawType") or crawl.get("law_type"))
+    law_type = row.get("violation_type")
+    # print(law_type)
+
+    
+    ###########################################
+    # 处理涉及的品牌类型
+    ########################################### 
+    brand = row.get("brand")
+    brand_info = row.get("brand_info")
+
+    
+
+    ###########################################
+    # 标题 
+    ########################################### 
+    # title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
+    title = f'{row.get("violation_type")}-品牌{brand}-案件{case_number}'
+    
     brand = _str(gemini and gemini.get("品牌方")) or _str(timeline_info and timeline_info.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
     # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
     if brand and not brand.isupper():
@@ -272,9 +298,17 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
     # brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
     brand_info = _parse_brand_info(gemini,basic,timeline_info)
+
+    ###########################################
+    # 处理涉及的法院信息
+    ########################################### 
     court_info = _str(timeline_info and timeline_info.get("court")) or _str(row.get("extract_court"))
     court_state = extract_us_state(court_info) + "州" if court_info and extract_us_state(court_info) else None
 
+
+    ###########################################
+    # 处理涉及的商品类型
+    ###########################################
     goods_categories = _str(gemini and gemini.get("涉及的商品类型")) or _str(crawl.get("goodsCategories") or crawl.get("goods_categories"))
     if goods_categories and goods_categories.startswith(('{', '[')) and goods_categories.endswith(('}', ']')):
         try:
@@ -387,6 +421,9 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         a.case_number_arr,
         a.extract_case_number,
         a.source_type,
+        a.brand,
+        a.brand_info,
+        a.brand_website,
         b.crawl_item AS basic_info,
         c.crawl_item AS timeline_info,
         d.new_url_arr,
@@ -399,6 +436,9 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
                     case_number_arr ,
                     extract_case_number,
                     source_type,
+                    brand,
+                    brand_info,
+                    brand_website,
                     COALESCE(json_extract(crawl_item, '$.title'), '') as title
             FROM tro_crawl_item_tb
             where extract_case_number = "{case_number}"
@@ -515,12 +555,6 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     elif len(doc_arr) == 1:
         return doc_arr[0]
     return None 
-            
-        
-    
-    
-        # print(json.dumps(doc))
-
 
 def upload_sanity_doc(sanity_project, token, dataset, doc):
     """上传doc文档到sanity_project
@@ -544,7 +578,7 @@ def upload_sanity_doc(sanity_project, token, dataset, doc):
 
 
 
-def select_case_number_by_updated_at(client, account_id, database_id, updated_at = '1900-01-01', limit=100000):
+def select_case_number_by_updated_at(client, account_id, database_id, start_pt= '1900-01-01', end_pt='2099-01-01', limit=100000):
     sql = f"""
             select
             *
@@ -555,7 +589,7 @@ def select_case_number_by_updated_at(client, account_id, database_id, updated_at
             from tro_crawl_item_tb
             where
                 is_multi_case_number = 0
-                and updated_at >= "1900-01-01"
+                and updated_at between "{start_pt}" and "{end_pt}"
                 and source_type in (
                 'CifTRONewsItem',
                 'MaijiaxingiquTRONewsItem',
@@ -565,6 +599,7 @@ def select_case_number_by_updated_at(client, account_id, database_id, updated_at
                 )
             group by extract_case_number
             ) tmp
+            
             order by max_updated_at desc
             limit {limit}
     """
@@ -589,6 +624,8 @@ def main():
     parser.add_argument("--sanity_project_id", required=False, help="Sanity 项目 ID，可通过环境变量 SANITY_PROJECT_ID 传递")
     parser.add_argument("--sanity_dataset", default="production", help="Sanity 数据集，可通过环境变量 SANITY_DATASET 传递")
     parser.add_argument("--sanity_token", required=False, help="Sanity 写权限 Token，可通过环境变量 SANITY_TOKEN 传递")
+    parser.add_argument("--start_pt", default="1900-01-01", help="筛选起始 updated_at 日期，格式如 2024-01-01，默认1900-01-01")
+    parser.add_argument("--end_pt", default="2099-01-01", help="筛选结束 updated_at 日期，格式如 2024-12-31，默认2099-01-01")
     args = parser.parse_args()
 
     token = args.cf_d1_api_token or os.getenv("CF_D1_API_TOKEN")
@@ -598,6 +635,10 @@ def main():
     sanity_dataset = args.sanity_dataset or os.getenv("SANITY_DATASET") or "production"
     sanity_token = args.sanity_token or os.getenv("SANITY_TOKEN")
 
+    start_pt = args.start_pt
+    end_pt = args.end_pt
+
+
     if not all([token, account_id, database_id]):
         print("缺少 D1 配置，请提供 --cf_d1_* 或环境变量 CF_D1_API_TOKEN / CF_D1_ACCOUNT_ID / CF_D1_DATABASE_ID")
         return
@@ -605,16 +646,20 @@ def main():
     from cloudflare import Cloudflare
     client = Cloudflare(api_token=token)
 
+    if start_pt and end_pt:
+        rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt)
+    else:
+        rows = select_case_number_by_updated_at(client, account_id, database_id)
+    for row in rows:
+        print(row.get('extract_case_number'))
 
+    # doc = create_sanity_doc_by_case_number(client, account_id,  database_id, "2025-cv-01909")
+    # upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
 
-    doc = create_sanity_doc_by_case_number(client, account_id,  database_id, "2025-cv-01909")
-    upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
-
     
     
     
     
-    # rows = select_case_number_by_updated_at(client, account_id, database_id, limit=500)
     # print(f"共 {len(rows)} 条")
     # for i, row in enumerate[dict[Any, Any]](rows):
     #     extract_case_number = row.get('extract_case_number')
