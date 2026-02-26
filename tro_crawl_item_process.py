@@ -267,8 +267,8 @@ def main():
     print(f"一共筛选出来行数：{len(rows)}")
 
 
-    # result = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
-    # print(f"共处理 {len(result)} 条")
+    result = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
+    print(f"共处理 {len(result)} 条")
     # for row in result:
     #     cases = row.get("case_numbers", [])
     #     multi = row.get("is_multi_case_number", "")
