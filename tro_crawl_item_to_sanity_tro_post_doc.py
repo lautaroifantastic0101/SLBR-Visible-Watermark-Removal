@@ -258,13 +258,13 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
     law_date_raw = _str(gemini and isinstance(gemini, dict) and gemini.get("起诉日期")) or _str(timeline_info and timeline_info.get("release_time")) or _str(basic and basic.get("prosecution_time")) or _str(crawl.get("lawDate") or crawl.get("law_date"))
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
-    law_from = _str(gemini and gemini.get("原告")) or _str(crawl.get("lawFrom") or crawl.get("law_from"))
+    law_from = _str(gemini and isinstance(gemini, dict) and  gemini.get("原告")) or _str(crawl.get("lawFrom") or crawl.get("law_from"))
 
     # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
     if law_from and not law_from.isupper():
         law_from = law_from.title()
     
-    law_firm = _str(gemini and gemini.get("律所")) or _str(timeline_info and timeline_info.get("law_firm")) or _str(basic and basic.get("law_firm")) or _str(crawl.get("lawFirm") or crawl.get("law_firm"))
+    law_firm = _str(gemini and isinstance(gemini, dict) and gemini.get("律所")) or _str(timeline_info and timeline_info.get("law_firm")) or _str(basic and basic.get("law_firm")) or _str(crawl.get("lawFirm") or crawl.get("law_firm"))
     if law_firm and not law_firm.isupper():
         law_firm = law_firm.title() 
     
