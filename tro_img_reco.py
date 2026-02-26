@@ -183,6 +183,10 @@ def main():
     parser.add_argument("--r2_account_id", required=False, help="Cloudflare R2 ACCOUNT_ID，可以通过环境变量传递")
     parser.add_argument("--r2_access_key_id", required=False, help="Cloudflare R2 ACCESS_KEY_ID，可以通过环境变量传递")
     parser.add_argument("--limit", required=False, type=int, default=None, help="从 SQL 查询开始的索引，指定获取多少条数据（如 100）")
+    # INSERT_YOUR_CODE
+    parser.add_argument("--start_pt", required=False, type=str, help="筛选起始 created_at 日期，例如 2024-01-01，可选")
+    parser.add_argument("--end_pt", required=False, type=str, help="筛选结束 created_at 日期，例如 2024-12-31，可选")
+
     parser.add_argument("--r2_secret_access_key", required=False, help="Cloudflare R2 SECRET_ACCESS_KEY，可以通过环境变量传递")
     parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可以通过环境变量传递")
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可以通过环境变量传递")
@@ -204,6 +208,8 @@ def main():
     d1_account_id = args_cli.cf_d1_account_id
     d1_database_id = args_cli.cf_d1_database_id
     limit = args_cli.limit
+    start_pt = args_cli.start_pt
+    end_pt = args_cli.end_pt
 
     # print(f"r2_account_id: {r2_account_id}")
     # print(f"r2_access_key_id: {r2_access_key_id}")
@@ -241,6 +247,9 @@ def main():
                     client=d1_client, 
                     ACCOUNT_ID=d1_account_id, 
                     DATABASE_ID=d1_database_id, 
+                    limit=limit,
+                    start_pt=start_pt,
+                    end_pt=end_pt
                 )
                 
                 # 调用 download_images_from_url_list，根据 id_url 列表下载图片
