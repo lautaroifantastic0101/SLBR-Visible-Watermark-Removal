@@ -52,7 +52,7 @@ def select_crawl_item_content(client, account_id, database_id, id=None, start_pt
         sql = sql + f" and id IN ({id})"
     
     if start_pt and end_pt:
-        sql = sql + f" and created_at >= {start_pt} and created_at <= {end_pt}"
+        sql = sql + f" and created_at between '{start_pt}' and  '{end_pt}'"
     
     print(sql)
     resp = client.d1.database.query(
