@@ -71,8 +71,8 @@ def update_image_url_and_class(client, target_id, url, class_name, ACCOUNT_ID, D
         response = client.d1.database.query(
             account_id=ACCOUNT_ID,
             database_id=DATABASE_ID,
-            # 参数化查询，防止注入
-            sql="UPDATE tro_post_img SET new_url = ?, img_type = ? WHERE id = ?",
+            # 参数化查询，防止注入，并更新 updated_at 字段为当前时间
+            sql="UPDATE tro_post_img SET new_url = ?, img_type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             params=[url, class_name, target_id]
         )
         # 检查是否更新成功
@@ -86,7 +86,7 @@ def update_image_url_and_class(client, target_id, url, class_name, ACCOUNT_ID, D
 
 # 调用例子
 
-def get_origin_urls_with_null_new_url(client, ACCOUNT_ID, DATABASE_ID, size):
+def get_origin_urls_with_null_new_url(client, ACCOUNT_ID, DATABASE_ID, limit=100000, start_pt='2001-01-01', end_pt='2099-01-01'):
     """
     查询 tro_post_img 表中 new_url 为 null 的 origin_url 列表
 
@@ -98,18 +98,26 @@ def get_origin_urls_with_null_new_url(client, ACCOUNT_ID, DATABASE_ID, size):
     Returns:
         List[str]: origin_url 列表
     """
+    sql = f"""
+    SELECT id, origin_url FROM tro_post_img 
+    WHERE new_url IS NULL 
+    and source_type in  ( 'CifTRONewsItem', 'MaijiaxingiquTRONewsItem', 'QqdipTROItem', 'RuiguanTROItem')
+    and created_at between '{start_pt}' and '{end_pt}'
+    LIMIT {limit}
+    """
+    print(sql)
     try:
         response = client.d1.database.query(
             account_id=ACCOUNT_ID,
             database_id=DATABASE_ID,
-            sql="SELECT id, origin_url FROM tro_post_img WHERE new_url IS NULL limit " + size
+            sql=sql
         )
         # 处理返回结果，假定 response.result[0].results 为结果集
         records = response.result[0].results if hasattr(response.result[0], "results") else []
         # 返回 [(id, origin_url), ...]
         result = [(row["id"], row["origin_url"]) for row in records if "origin_url" in row and "id" in row]
         # INSERT_YOUR_CODE
-        print("DEBUG: get_origin_urls_with_null_new_url result =", result)
+        print("DEBUG: get_origin_urls_with_null_new_url result size =", len(result))
         return result
     except Exception as e:
         print(f"执行查询出错: {e}")

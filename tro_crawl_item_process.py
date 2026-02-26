@@ -17,7 +17,7 @@ from src.utils.parse_utils import extract_brand_name, extract_law_type_info, ext
 CASE_NUMBER_PATTERN = re.compile(r"(\d{2,4})-cv-(\d+)", re.IGNORECASE)
 
 # 每批执行的 UPDATE 条数
-UPDATE_BATCH_SIZE = 1
+UPDATE_BATCH_SIZE = 100
 
 
 def normalize_case_number(raw: str) -> str:
@@ -248,6 +248,11 @@ def main():
 
     update_sqls = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
     print(f"共处理 {len(update_sqls)} 条")
+
+    ################################################################
+    # 开始批量执行sql
+    ################################################################
+    
     update_sql_arr = []
     cnt = 0
     for sql in update_sqls:
@@ -267,18 +272,6 @@ def main():
                 # results[-1]["error"] = str(e)
             finally:
                 update_sql_arr = []
-    # for row in result:
-    #     cases = row.get("case_numbers", [])
-    #     multi = row.get("is_multi_case_number", "")
-    #     err = row.get("error", "")
-    #     # if multi == "1" or len(cases) >= 10:
-    #     msg = f"  id={row['id']}, is_multi_case_number={multi}, 案号数={len(cases)}"
-    #     if cases:
-    #         msg += f", 案号={cases[:5]}{'...' if len(cases) > 5 else ''}"
-    #     if err:
-    #         msg += f", error={err}"
-    #         print(msg)
-    # return result
 
 if __name__ == "__main__":
     main()

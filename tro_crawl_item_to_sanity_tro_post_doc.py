@@ -594,8 +594,7 @@ def select_case_number_by_updated_at(client, account_id, database_id, start_pt= 
                 'CifTRONewsItem',
                 'MaijiaxingiquTRONewsItem',
                 'QqdipTROItem',
-                'RuiguanTROItem',
-                'ZlvywTROItem'
+                'RuiguanTROItem'
                 )
             group by extract_case_number
             ) tmp
@@ -603,6 +602,7 @@ def select_case_number_by_updated_at(client, account_id, database_id, start_pt= 
             order by max_updated_at desc
             limit {limit}
     """
+    print(sql)
     resp = client.d1.database.query(
         database_id=database_id,
         account_id=account_id,
