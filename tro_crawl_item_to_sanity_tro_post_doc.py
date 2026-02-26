@@ -579,6 +579,9 @@ def upload_sanity_doc(sanity_project, token, dataset, doc):
 
 
 def select_case_number_by_updated_at(client, account_id, database_id, start_pt= '1900-01-01', end_pt='2099-01-01', limit=100000):
+    """
+    功能：筛选需要更新sanity doc 的case number
+    """
     sql = f"""
             select
             *

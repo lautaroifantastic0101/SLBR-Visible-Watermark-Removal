@@ -271,6 +271,7 @@ def main():
                 exit(1)
             pass
         else:
+            # 从csv文件中下载图片
             id_paths = download_images_from_csv(csv_path, img_download_dir)
             print(f"下载完成，共 {len(id_paths)} 张")
     else:
@@ -323,6 +324,9 @@ def main():
     # print("DEBUG: pid_to_class =", pid_to_class)
     
 
+    ###################################################################
+    # 【3】去水印处理
+    ###################################################################
     if args_cli.skip_remove_wm:
         # 跳过remove去除水印（当前技术还不成熟）
         rst_img_path = os.path.join(download_dir, 'imgs')
@@ -330,9 +334,6 @@ def main():
         rst_img_path = os.path.join(download_dir, 'rst')
     print(f"rst_img_path = {rst_img_path}")
 
-    ###################################################################
-    # 【3】去水印处理
-    ###################################################################
     if not args_cli.skip_remove_wm:
         parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
         args_list = ['--name','slbr_v1','--nets','slbr','--models','slbr','--input-size','512','--crop_size','512','--test-batch','1','--evaluate', '--preprocess','resize','--no_flip','--mask_mode','res','--k_center','2','--use_refine','--k_refine','3','--k_skip_stage','3','--resume',slbr_model_path,'--test_dir',download_dir]
