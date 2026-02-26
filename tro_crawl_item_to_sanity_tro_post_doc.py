@@ -550,6 +550,7 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
         except Exception as e:
             print("caseNumber:", case_number, "error", str(e))
 
+    print(f"{case_number} doc_arr {len(doc_arr)}")
     if len(doc_arr) > 1:
         return merge_doc_arr(doc_arr)
     elif len(doc_arr) == 1:
