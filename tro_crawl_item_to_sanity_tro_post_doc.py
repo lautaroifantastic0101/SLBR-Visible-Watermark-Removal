@@ -9,6 +9,7 @@ import select
 import time
 from typing import Any
 from dotenv import load_dotenv
+from numpy import isin
 import requests
 from sympy import E, EX
 
@@ -310,7 +311,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     ###########################################
     # 处理涉及的商品类型
     ###########################################
-    goods_categories = _str(gemini and gemini.get("涉及的商品类型")) or _str(crawl.get("goodsCategories") or crawl.get("goods_categories"))
+    goods_categories = _str(gemini and isinstance(gemini, dict) and gemini.get("涉及的商品类型")) or _str(crawl.get("goodsCategories") or crawl.get("goods_categories"))
     if goods_categories and goods_categories.startswith(('{', '[')) and goods_categories.endswith(('}', ']')):
         try:
             goods_categories = json.loads(goods_categories.replace('\'', '"'))
