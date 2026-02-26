@@ -424,6 +424,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         a.brand,
         a.brand_info,
         a.brand_website,
+        a.violation_type,
         b.crawl_item AS basic_info,
         c.crawl_item AS timeline_info,
         d.new_url_arr,
