@@ -96,7 +96,8 @@ def download_images_from_url_list(rows: list, download_dir: str) -> list:
     """
     os.makedirs(download_dir, exist_ok=True)
     results = []
-    for pid, url in rows:
+    total = len(rows)
+    for i, (pid, url) in enumerate(rows, 1):
         ext = ".jpg"
         if "." in url.split("?")[0]:
             ext = "." + url.split("?")[0].rsplit(".", 1)[-1].lower()
@@ -105,13 +106,15 @@ def download_images_from_url_list(rows: list, download_dir: str) -> list:
         local_name = f"{pid}_{os.path.basename(url.split('?')[0])}"
         local_path = os.path.join(download_dir, local_name)
         try:
+            print(f"下载中 ({i}/{total}) pid={pid} ...", end=" ", flush=True)
             r = requests.get(url, timeout=15)
             r.raise_for_status()
             with open(local_path, "wb") as fp:
                 fp.write(r.content)
             results.append((pid, local_path))
+            print("完成")
         except Exception as e:
-            print(f"下载失败 [{pid}] {url}: {e}")
+            print(f"失败: {e}")
     return results
 
 
@@ -144,7 +147,7 @@ def classify_with_yolo(image_path: str, yolo_model_path: str):
 
 
 def generate_r2_key(img_filename):
-    """_summary_
+    """生成上传到图片存储中的r2 key
     Args:
         img_filenam: 文件的名字，不带路径
     """
@@ -218,7 +221,9 @@ def main():
     BUCKET_NAME = "my-blog-app"
     ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
 
+    ###################################################################
     # 【0】 Initialize the S3 client
+    ###################################################################
     s3_client = boto3.client(
         "s3",
         endpoint_url=ENDPOINT_URL,
@@ -237,7 +242,9 @@ def main():
     #     print(f"YOLO 模型不存在: {yolo_model_path}")
     #     return
 
+    ###################################################################
     # 1) 下载 到 图片 位置
+    ###################################################################
     img_download_dir = os.path.join(download_dir, 'imgs')
     if not args_cli.skip_download:
         if limit:
@@ -254,6 +261,9 @@ def main():
                 
                 # 调用 download_images_from_url_list，根据 id_url 列表下载图片
                 # 假设 rows 是 [(id, url), ...]
+                print("###################################################################")
+                print("调用 download_images_from_url_list，根据 id_url 列表下载图片")
+                print("###################################################################")
                 id_paths = download_images_from_url_list(rows, img_download_dir)
                 print(f"下载完成，共 {len(id_paths)} 张")
             else:
@@ -285,7 +295,9 @@ def main():
     os.makedirs(processed_dir, exist_ok=True)
  
 
+    ###################################################################
     # 【2】 图片进行分类；将分类信息进行存储
+    ###################################################################
     pid_to_class = {}
     for pid, local_path in id_paths:
         if not os.path.isfile(local_path):
@@ -308,18 +320,19 @@ def main():
         r2key = generate_r2_key(out_name)
         # cv2.imwrite(out_path, out_img)
         print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
-    # INSERT_YOUR_CODE
     # print("DEBUG: pid_to_class =", pid_to_class)
     
 
     if args_cli.skip_remove_wm:
-        # 跳过remove wm
+        # 跳过remove去除水印（当前技术还不成熟）
         rst_img_path = os.path.join(download_dir, 'imgs')
     else:
         rst_img_path = os.path.join(download_dir, 'rst')
     print(f"rst_img_path = {rst_img_path}")
 
+    ###################################################################
     # 【3】去水印处理
+    ###################################################################
     if not args_cli.skip_remove_wm:
         parser=Options().init(argparse.ArgumentParser(description='WaterMark Removal'))
         args_list = ['--name','slbr_v1','--nets','slbr','--models','slbr','--input-size','512','--crop_size','512','--test-batch','1','--evaluate', '--preprocess','resize','--no_flip','--mask_mode','res','--k_center','2','--use_refine','--k_refine','3','--k_skip_stage','3','--resume',slbr_model_path,'--test_dir',download_dir]
@@ -328,7 +341,9 @@ def main():
         slbr_predict_custom(slbr_custom_args)
 
     
+    ###################################################################
     # 【4】上传到R2文件夹，以及更新D1数据库路径
+    ###################################################################
     for f in os.listdir(rst_img_path):
         if f.startswith("."):
             continue

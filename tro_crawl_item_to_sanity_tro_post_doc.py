@@ -618,7 +618,7 @@ def main():
     parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可通过环境变量 CF_D1_API_TOKEN 传递")
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可通过环境变量 CF_D1_ACCOUNT_ID 传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
-    parser.add_argument("--source_type", default="CifTRONewsItem", help="主表与图片表过滤的 source_type（默认 CifTRONewsItem）")
+    # parser.add_argument("--source_type", default="CifTRONewsItem", help="主表与图片表过滤的 source_type（默认 CifTRONewsItem）")
     parser.add_argument("--upload", action="store_true", help="将查询结果按 tro_post schema 上传到 Sanity")
     parser.add_argument("--dry_run", action="store_true", help="与 --upload 同用，仅打印将要上传的内容，不请求 Sanity")
     parser.add_argument("--sanity_project_id", required=False, help="Sanity 项目 ID，可通过环境变量 SANITY_PROJECT_ID 传递")
@@ -646,32 +646,32 @@ def main():
     from cloudflare import Cloudflare
     client = Cloudflare(api_token=token)
 
+
+    ######################################################
+    # 【筛选】出来哪些case number需要更新的
+    ######################################################
     if start_pt and end_pt:
         rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt)
     else:
         rows = select_case_number_by_updated_at(client, account_id, database_id)
     for row in rows:
         print(row.get('extract_case_number'))
+    print(f"共 {len(rows)} 条")
 
-    # doc = create_sanity_doc_by_case_number(client, account_id,  database_id, "2025-cv-01909")
-    # upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
-
-    
-    
-    
-    
-    # print(f"共 {len(rows)} 条")
-    # for i, row in enumerate[dict[Any, Any]](rows):
-    #     extract_case_number = row.get('extract_case_number')
-    #     print(f"[{i+1}] , extract_case_number={extract_case_number}")
-    #     if extract_case_number is None:
-    #         continue
-    #     doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
-    #     if args.upload and doc is not None:
-    #         if not sanity_project or not sanity_token:
-    #             print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
-    #             return 
-    #         upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
+    ######################################################
+    # 【上传】生成doc，并且上传到sanity系统中
+    ######################################################
+    for i, row in enumerate[dict[Any, Any]](rows):
+        extract_case_number = row.get('extract_case_number')
+        print(f"[{i+1}] , extract_case_number={extract_case_number}")
+        if extract_case_number is None:
+            continue
+        doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
+        if args.upload and doc is not None:
+            if not sanity_project or not sanity_token:
+                print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
+                return 
+            upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
         
     # create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
     # rows = run_select_join(client, account_id, database_id, args.source_type)
