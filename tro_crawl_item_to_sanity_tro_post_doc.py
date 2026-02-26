@@ -683,6 +683,8 @@ def main():
             if not sanity_project or not sanity_token:
                 print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
                 return 
+            print(type(doc))
+            print(doc)
             upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
         
     # create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
