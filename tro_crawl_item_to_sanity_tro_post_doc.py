@@ -440,6 +440,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
                     brand,
                     brand_info,
                     brand_website,
+                    violation_type,
                     COALESCE(json_extract(crawl_item, '$.title'), '') as title
             FROM tro_crawl_item_tb
             where extract_case_number = "{case_number}"
