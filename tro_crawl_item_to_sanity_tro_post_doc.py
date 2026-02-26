@@ -147,11 +147,11 @@ def _related_cases_list(val) -> list[str]:
 def _parse_brand_info(gemini_info,basic_info,timeline_info) -> str:
     """将品牌信息转为 JSON 字符串。"""
     brand_ret = {}
-    gemini_brand = gemini_info and gemini_info.get("品牌方")
+    gemini_brand = gemini_info and isinstance(gemini_info, dict) and gemini_info.get("品牌方")
     basic_brand = basic_info and basic_info.get("brand")
 
     
-    if gemini_info and gemini_info.get("品牌方信息"):
+    if gemini_info and isinstance(gemini_info, dict) and gemini_info.get("品牌方信息"):
         brand_info = gemini_info.get("品牌方信息")
         if brand_info and isinstance(brand_info, dict):
             # 组装 key 和 value 为一句话（如“key1: value1, key2: value2”）
