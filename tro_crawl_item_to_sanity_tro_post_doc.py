@@ -2,6 +2,7 @@ import argparse
 import json
 from numbers import Real
 import os
+import traceback
 from pydoc import cli
 import re
 import select
@@ -12,7 +13,7 @@ import requests
 from sympy import E, EX
 
 from src.utils.config_utils import BrandManager
-from src.utils.parse_utils import extract_us_state, parse_json_text
+from src.utils.parse_utils import extract_us_state, parse_json_text, to_str_ob
 
 load_dotenv()
 
@@ -272,7 +273,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 维权类型处理
     ###########################################  
     # law_type = _str(gemini and gemini.get("维权类型")) or _str(crawl.get("lawType") or crawl.get("law_type"))
-    law_type = row.get("violation_type")
+    law_type = to_str_ob(row.get("violation_type"))
     # print(law_type)
 
     
@@ -548,9 +549,12 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     for row in rows:
         try:
             doc = row_to_tro_post_doc(row)
+            print(doc)
             doc_arr.append(doc)
         except Exception as e:
             print("caseNumber:", case_number, "error", str(e))
+            traceback.print_exc()
+            
 
     print(f"{case_number} doc_arr {len(doc_arr)}")
     if len(doc_arr) > 1:

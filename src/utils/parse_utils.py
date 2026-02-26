@@ -326,6 +326,20 @@ def _str_ob(ob):
         for k, v in ob.items():
             ret = ret + f"{k}: {v};"
         return ret.replace("'", "`")
+
+
+def to_str_ob(ob):
+    if ob is None:
+        return "" 
+    elif isinstance(ob, str):
+        return ob.replace("'", "`")
+    elif isinstance(ob, list):
+        return json.dumps(ob).replace("'", "`")
+    elif isinstance(ob, dict):
+        ret = ''
+        for k, v in ob.items():
+            ret = ret + f"{k}: {v};"
+        return ret.replace("'", "`")
             
             
         
