@@ -406,7 +406,7 @@ def extract_law_type_info(gemini_ai_resp):
         return None
 
     gemini_ai_resp_json = parse_json_text(gemini_ai_resp)
-    if gemini_ai_resp_json is not None:
+    if gemini_ai_resp_json and isinstance(gemini_ai_resp_json, dict):
         raw_cp = gemini_ai_resp_json.get("维权类型") or gemini_ai_resp_json.get("type_of_case") or gemini_ai_resp_json.get("rights_type")
         ret = _normalize_law_type(raw_cp)
     return ret
