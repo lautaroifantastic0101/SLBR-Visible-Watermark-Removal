@@ -639,6 +639,7 @@ def main():
     parser.add_argument("--start_pt", default="1900-01-01", help="筛选起始 updated_at 日期，格式如 2024-01-01，默认1900-01-01")
     parser.add_argument("--end_pt", default="2099-01-01", help="筛选结束 updated_at 日期，格式如 2024-12-31，默认2099-01-01")
     parser.add_argument("--limit", type=int, default=100000, help="最多返回多少条（默认100000）")
+    parser.add_argument("--case_numbers", required=False, help="只处理指定的案号（可选）")
     args = parser.parse_args()
 
     token = args.cf_d1_api_token or os.getenv("CF_D1_API_TOKEN")
@@ -651,6 +652,7 @@ def main():
     start_pt = args.start_pt
     end_pt = args.end_pt
     limit = args.limit
+    case_numbers = args.case_numbers
 
 
     if not all([token, account_id, database_id]):
@@ -662,32 +664,47 @@ def main():
 
 
     ######################################################
-    # 【筛选】出来哪些case number需要更新的
+    # 【筛选】出来哪些case number需要更新的，只是返回case number
     ######################################################
-    if start_pt and end_pt:
-        rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt, limit=limit)
+    if case_numbers is None:
+        if start_pt and end_pt:
+            rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt, limit=limit)
+        else:
+            rows = select_case_number_by_updated_at(client, account_id, database_id)
+        for row in rows:
+            print(row.get('extract_case_number'))
+        print(f"共 {len(rows)} 条")
+        for i, row in enumerate[dict[Any, Any]](rows):
+            extract_case_number = row.get('extract_case_number')
+            print(f"[{i+1}] , extract_case_number={extract_case_number}")
+            if extract_case_number is None:
+                continue
+            # 生成doc文档 
+            doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
+            if args.upload and doc is not None:
+                if not sanity_project or not sanity_token:
+                    print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
+                    return 
+                # print(type(doc))
+                # print(doc)
+                
+                # 上传到sanity服务器
+                upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
     else:
-        rows = select_case_number_by_updated_at(client, account_id, database_id)
-    for row in rows:
-        print(row.get('extract_case_number'))
-    print(f"共 {len(rows)} 条")
+        print(f"单独处理{case_numbers}")
+        for case_n in case_numbers.split(','):
+            doc = create_sanity_doc_by_case_number(client, account_id,  database_id, case_n)
+            print(doc)
+            if args.upload and doc is not None:
+                if not sanity_project or not sanity_token:
+                    print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
+                    return 
+            upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
 
     ######################################################
     # 【上传】生成doc，并且上传到sanity系统中
     ######################################################
-    for i, row in enumerate[dict[Any, Any]](rows):
-        extract_case_number = row.get('extract_case_number')
-        print(f"[{i+1}] , extract_case_number={extract_case_number}")
-        if extract_case_number is None:
-            continue
-        doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
-        if args.upload and doc is not None:
-            if not sanity_project or not sanity_token:
-                print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
-                return 
-            # print(type(doc))
-            # print(doc)
-            upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
+
         
     # create_sanity_doc(rows, sanity_project, sanity_dataset, sanity_token, dry_run=args.dry_run)
     # rows = run_select_join(client, account_id, database_id, args.source_type)
