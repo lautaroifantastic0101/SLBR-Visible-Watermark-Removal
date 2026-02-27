@@ -97,6 +97,8 @@ def download_images_from_url_list(rows: list, download_dir: str) -> list:
     os.makedirs(download_dir, exist_ok=True)
     results = []
     total = len(rows)
+    success_cnt = 0
+    fail_rows = []
     for i, (pid, url) in enumerate(rows, 1):
         ext = ".jpg"
         if "." in url.split("?")[0]:
@@ -111,12 +113,14 @@ def download_images_from_url_list(rows: list, download_dir: str) -> list:
             with open(local_path, "wb") as fp:
                 fp.write(r.content)
             results.append((pid, local_path))
+            success_cnt += 1
         except Exception as e:
             print(f"\n下载失败 [{pid}] {url}: {e}")
+            fail_rows.append((pid, url))
         if i%20 == 0:
-            print(f"\r下载中 {i}/{total}", end="", flush=True)
+            print(f"\r下载中 {i}/{total}")
     if total:
-        print(f"\r下载完成 {total}/{total}")
+        print(f"\r下载完成 {success_cnt}/{total}")
     return results
 
 
@@ -133,6 +137,9 @@ def classify_with_yolo(image_path: str, yolo_model_path: str):
     model = YOLO(yolo_model_path)
     results = model.predict(source=image_path, verbose=False)
     if not results:
+        print(f"分类结果为空；{image_path}")
+        
+        
         return None
     r = results[0]
     if hasattr(r, "probs") and r.probs is not None:
@@ -145,6 +152,7 @@ def classify_with_yolo(image_path: str, yolo_model_path: str):
         top1 = 0 if top1 is None else int(top1)
         names = getattr(r, "names", None) or {}
         return {"class_id": top1, "class_name": names.get(top1, ""), "conf": float(top1_conf)}
+    print(f"分类结果信息不全；{image_path}", results)
     return None
 
 
@@ -314,6 +322,7 @@ def main():
             str_pid = str(pid)
             print(f"[{str_pid}] 分类: {cls_info.get('class_name', '')} ({cls_info.get('conf', 0):.2f})")
             pid_to_class[str_pid] = cls_info.get('class_name', '')
+
         # 3) 去水印
         # out_img = remove_watermark_slbr(Machine, slbr_args, device, local_path, crop_size)
         # if out_img is None:

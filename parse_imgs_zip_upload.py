@@ -49,9 +49,9 @@ def update_image_url(client, target_id, url, ACCOUNT_ID, DATABASE_ID):
         # 检查是否更新成功
         if response.result[0].success:
             meta = response.result[0].meta
-            print(f"更新成功！受影响行数: {meta.rows_written}")
+            # print(f"更新成功！受影响行数: {meta.rows_written}")
         else:
-            print(f"更新失败: {response.result[0].errors}")
+            print(f"更新失败 id{id}: {response.result[0].errors}")
             
     except Exception as e:
         print(f"执行出错: {e}")
