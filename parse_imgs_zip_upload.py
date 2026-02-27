@@ -31,9 +31,9 @@ def upload_file(client, bucketname, local_file_path, upload_r2_key):
                 'ContentType': f'image/{upload_r2_key.split(".")[-1]}'  # 简单的 MIME 类型推断
             }
         )
-        print(f"File {upload_r2_key} uploaded to bucket '{bucketname}'.")
+        # print(f"File {upload_r2_key} uploaded to bucket '{bucketname}'.")
     except Exception as e:
-        print(f"Error uploading file: {e}")
+        print(f"Error uploading file {local_file_path}: {e}")
 
 
 def update_image_url(client, target_id, url, ACCOUNT_ID, DATABASE_ID):

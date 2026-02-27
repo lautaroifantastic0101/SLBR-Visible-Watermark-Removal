@@ -106,15 +106,17 @@ def download_images_from_url_list(rows: list, download_dir: str) -> list:
         local_name = f"{pid}_{os.path.basename(url.split('?')[0])}"
         local_path = os.path.join(download_dir, local_name)
         try:
-            print(f"下载中 ({i}/{total}) pid={pid} ...", end=" ", flush=True)
             r = requests.get(url, timeout=15)
             r.raise_for_status()
             with open(local_path, "wb") as fp:
                 fp.write(r.content)
             results.append((pid, local_path))
-            print("完成")
         except Exception as e:
-            print(f"失败: {e}")
+            print(f"\n下载失败 [{pid}] {url}: {e}")
+        if i%20 == 0:
+            print(f"\r下载中 {i}/{total}", end="", flush=True)
+    if total:
+        print(f"\r下载完成 {total}/{total}")
     return results
 
 
@@ -353,7 +355,7 @@ def main():
         lower = f.lower()
         if lower.endswith((".jpg", ".jpeg", ".png", ".webp", ".png")):
             img_file = os.path.join(rst_img_path, f)
-            print(f"处理去水印图片: {img_file}")
+            # print(f"处理去水印图片: {img_file}")
             img_file_name = os.path.basename(img_file)
             pid = img_file_name.split('_')[0]
             try:
