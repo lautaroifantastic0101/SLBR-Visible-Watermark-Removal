@@ -217,7 +217,7 @@ def _parse_patent_list(raw_string):
         ob = {"patentNumber":  pl, "title": "", "type": "外观专利"}
         patent_list.append(ob)
         
-    return patent_list
+    return json.dumps(patent_list)
         
     
     
