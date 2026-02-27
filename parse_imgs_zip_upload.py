@@ -78,7 +78,7 @@ def update_image_url_and_class(client, target_id, url, class_name, ACCOUNT_ID, D
         # 检查是否更新成功
         if response.result[0].success:
             meta = response.result[0].meta
-            print(f"更新成功！受影响行数: {meta.rows_written}")
+            # print(f"更新成功！受影响行数: {meta.rows_written}")
         else:
             print(f"更新失败: {response.result[0].errors}")
     except Exception as e:

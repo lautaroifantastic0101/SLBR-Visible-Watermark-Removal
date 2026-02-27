@@ -322,6 +322,8 @@ def main():
             str_pid = str(pid)
             print(f"[{str_pid}] 分类: {cls_info.get('class_name', '')} ({cls_info.get('conf', 0):.2f})")
             pid_to_class[str_pid] = cls_info.get('class_name', '')
+        else:
+            print(f'{pid}分类信息为null {cls_info}')
 
         # 3) 去水印
         # out_img = remove_watermark_slbr(Machine, slbr_args, device, local_path, crop_size)
@@ -333,7 +335,7 @@ def main():
         out_path = os.path.join(processed_dir, out_name)
         r2key = generate_r2_key(out_name)
         # cv2.imwrite(out_path, out_img)
-        print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
+        # print(f"[{pid}] 已保存: {out_path}, r2_key {r2key}")
     # print("DEBUG: pid_to_class =", pid_to_class)
     
 
@@ -370,6 +372,7 @@ def main():
             try:
                 if pid not in pid_to_class:
                     print(f"[{pid}] 分类信息不存在，跳过")
+                    print(pid_to_class)
                     continue
                 predict_img_class = pid_to_class[pid]
                 r2key = generate_r2_key(img_file_name)
