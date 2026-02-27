@@ -595,7 +595,7 @@ def select_case_number_by_updated_at(client, account_id, database_id, start_pt= 
     if exclude_cvs is None:
         exclude_cvs_filter = '"case_number"'
     else:
-        exclude_cvs_filter = ','.join([f'"{i}"' for i in exclude_cvs])
+        exclude_cvs_filter = ','.join([f'"{i}"' for i in exclude_cvs.split(',')])
         
     sql = f"""
             select
@@ -647,7 +647,7 @@ def main():
     parser.add_argument("--end_pt", default="2099-01-01", help="筛选结束 updated_at 日期，格式如 2024-12-31，默认2099-01-01")
     parser.add_argument("--limit", type=int, default=100000, help="最多返回多少条（默认100000）")
     parser.add_argument("--case_numbers", required=False, help="只处理指定的案号（可选）")
-    parser.add_argument("--exclude_cvs", required=False, type=str, nargs="*", help="cv case")
+    parser.add_argument("--exclude_cvs", required=False, type=str, help="cv case")
 
     args = parser.parse_args()
 
