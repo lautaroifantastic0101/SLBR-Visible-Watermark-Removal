@@ -213,7 +213,7 @@ def main():
     limit = args_cli.limit
     start_pt = args_cli.start_pt
     end_pt = args_cli.end_pt
-    origin_post_id = args_cli.ororigin_post_idi
+    origin_post_id = args_cli.origin_post_id
 
     # print(f"r2_account_id: {r2_account_id}")
     # print(f"r2_access_key_id: {r2_access_key_id}")
