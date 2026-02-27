@@ -587,10 +587,15 @@ def upload_sanity_doc(sanity_project, token, dataset, doc):
 
 
 
-def select_case_number_by_updated_at(client, account_id, database_id, start_pt= '1900-01-01', end_pt='2099-01-01', limit=100000):
+def select_case_number_by_updated_at(client, account_id, database_id, start_pt= '1900-01-01', end_pt='2099-01-01', limit=100000, exclude_cvs=None):
     """
     功能：筛选需要更新sanity doc 的case number
     """
+    if exclude_cvs is None:
+        exclude_cvs_filter = '"case_number"'
+    else:
+        exclude_cvs_filter = ','.join([f'"{i}"' for i in exclude_cvs.split(',')])
+        
     sql = f"""
             select
             *
@@ -608,6 +613,7 @@ def select_case_number_by_updated_at(client, account_id, database_id, start_pt= 
                 'QqdipTROItem',
                 'RuiguanTROItem'
                 )
+                and extract_case_number not in ({exclude_cvs_filter})
             group by extract_case_number
             ) tmp
             
@@ -640,6 +646,8 @@ def main():
     parser.add_argument("--end_pt", default="2099-01-01", help="筛选结束 updated_at 日期，格式如 2024-12-31，默认2099-01-01")
     parser.add_argument("--limit", type=int, default=100000, help="最多返回多少条（默认100000）")
     parser.add_argument("--case_numbers", required=False, help="只处理指定的案号（可选）")
+    parser.add_argument("--exclude_cvs", required=False, type=str, nargs="*", help="cv case")
+
     args = parser.parse_args()
 
     token = args.cf_d1_api_token or os.getenv("CF_D1_API_TOKEN")
@@ -653,6 +661,7 @@ def main():
     end_pt = args.end_pt
     limit = args.limit
     case_numbers = args.case_numbers
+    exclude_cvs = args.exclude_cvs
 
 
     if not all([token, account_id, database_id]):
@@ -668,7 +677,7 @@ def main():
     ######################################################
     if case_numbers is None:
         if start_pt and end_pt:
-            rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt, limit=limit)
+            rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt, limit=limit, exclude_cvs=exclude_cvs)
         else:
             rows = select_case_number_by_updated_at(client, account_id, database_id)
         for row in rows:
