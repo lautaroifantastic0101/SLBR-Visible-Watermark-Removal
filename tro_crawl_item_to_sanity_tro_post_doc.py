@@ -591,10 +591,11 @@ def select_case_number_by_updated_at(client, account_id, database_id, start_pt= 
     """
     功能：筛选需要更新sanity doc 的case number
     """
+    print(type(exclude_cvs), exclude_cvs)
     if exclude_cvs is None:
         exclude_cvs_filter = '"case_number"'
     else:
-        exclude_cvs_filter = ','.join([f'"{i}"' for i in exclude_cvs.split(',')])
+        exclude_cvs_filter = ','.join([f'"{i}"' for i in exclude_cvs])
         
     sql = f"""
             select
