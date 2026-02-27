@@ -76,7 +76,7 @@ def find_case_numbers(content: str):
     return list[str](dict.fromkeys(normalized))
 
 
-def update_is_multi_case_number_and_court_info_and_patent_arr(rows, id=None):
+def complete_basic_info_columns(rows, id=None):
     """
     根据爬取内容中案号数量判断是否多个案号，并更新 is_multi_case_number、case_number_arr 字段（每条 SQL 单独执行）
     更新表中的multi_case相关字段信息；
@@ -246,7 +246,7 @@ def main():
     print(f"一共筛选出来行数：{len(rows)}")
 
 
-    update_sqls = update_is_multi_case_number_and_court_info_and_patent_arr(rows)
+    update_sqls = complete_basic_info_columns(rows)
     print(f"共处理 {len(update_sqls)} 条")
 
     ################################################################

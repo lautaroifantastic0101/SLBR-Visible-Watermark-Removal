@@ -204,6 +204,7 @@ def _parse_progress(timeline_info) -> str:
 
 def _parse_patent_list(raw_string):
     """解析处理patent list信息
+    return: list of dict
 
     Args:
         raw_string (_type_): _description_

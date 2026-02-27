@@ -355,13 +355,13 @@ def extract_brand_name(gemini_ai_resp):
         _type_: _description_
     """
     if not gemini_ai_resp or not isinstance(gemini_ai_resp, str):
-        return None, None, None
+        return '', '', ''
     try:
         gemini_ai_resp_json = parse_json_text(gemini_ai_resp)
         if isinstance(gemini_ai_resp_json, list):
-            return None, None, None
+            return '', '', ''
         if gemini_ai_resp_json is None:
-            return None, None, None
+            return '', '', ''
         else:
             brand_name = _str_ob(gemini_ai_resp_json.get("品牌方"))
             brand_info = _str_ob(gemini_ai_resp_json.get("品牌方信息"))
@@ -375,7 +375,7 @@ def extract_brand_name(gemini_ai_resp):
             return brand_name, brand_info, url
     except Exception as e:
         print(f"error: {e} . {gemini_ai_resp}")
-        return None, None, None
+        return '', '', ''
 
 
 
