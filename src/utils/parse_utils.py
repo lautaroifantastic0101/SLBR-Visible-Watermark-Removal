@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Any
 
 from numpy import isin
 
@@ -312,6 +313,8 @@ def extract_urls(text):
     """
     url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'
     urls = re.findall(url_pattern, text)
+    if urls is None:
+        return []
     return urls
 
 def _str_ob(ob):
@@ -366,9 +369,9 @@ def extract_brand_name(gemini_ai_resp):
             brand_name = _str_ob(gemini_ai_resp_json.get("品牌方"))
             brand_info = _str_ob(gemini_ai_resp_json.get("品牌方信息"))
             urls = []
-            url = None
+            url = ''
             if brand_info is not None:
-                urls = list(set(extract_urls(brand_info)))
+                urls = list[Any](set(extract_urls(brand_info)))
             if len(urls) > 0:
                 print(urls)
                 url = urls[0]
