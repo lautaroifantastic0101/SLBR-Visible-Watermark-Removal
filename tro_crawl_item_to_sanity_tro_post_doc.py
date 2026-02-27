@@ -451,8 +451,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
             'CifTRONewsItem',
             'MaijiaxingiquTRONewsItem',
             'QqdipTROItem',
-            'RuiguanTROItem',
-            'ZlvywTROItem'
+            'RuiguanTROItem'
             )
         ) a
         LEFT OUTER JOIN (
