@@ -286,8 +286,10 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 处理涉及的品牌类型
     ########################################### 
     brand = row.get("brand")
-    brand_info = row.get("brand_info")
+    brand_desc = row.get("brand_info")
     brand_website = row.get("brand_website")
+    # 组装brand info
+    brand_info = json.dumps({"name":brand, "contact":brand_website, "description":brand_desc})
 
     
 
