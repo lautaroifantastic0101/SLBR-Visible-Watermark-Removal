@@ -22,6 +22,8 @@ test.py
 *.pth.tar
 .env
 
+*~$*
+
 # Build artifacts
 build/
 dist/
