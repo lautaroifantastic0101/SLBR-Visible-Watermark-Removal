@@ -21,6 +21,9 @@ class BrandManager:
         df = df.explode("_brand_split", ignore_index=True).drop(columns=["brand"]).rename(columns={"_brand_split": "brand"})
         df = df[df["brand"].astype(str).str.len() > 0]  # 去掉空 brand 行
 
+        # NaN 统一为空字符串，避免 config 中出现 nan
+        df = df.fillna("")
+
         # 结构：{ 'BrandName': {'brand_website': '...', 'brand_info': '...'} }
         self.config = df.set_index('brand').to_dict(orient='index')
         # 提取所有的 key 用于匹配
