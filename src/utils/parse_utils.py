@@ -4,6 +4,15 @@ from typing import Any
 
 from numpy import isin
 
+_brand_manager = None
+
+def _get_brand_manager():
+    global _brand_manager
+    if _brand_manager is None:
+        from src.utils.config_utils import BrandManager
+        _brand_manager = BrandManager("config/brand_info_config.xlsx")
+    return _brand_manager
+
 # -----------------------------------------------------------------------------
 # 从文本中提取并解析 JSON
 # -----------------------------------------------------------------------------
@@ -367,14 +376,29 @@ def extract_brand_name(gemini_ai_resp):
             return '', '', ''
         else:
             brand_name = _str_ob(gemini_ai_resp_json.get("品牌方"))
+
             brand_info = _str_ob(gemini_ai_resp_json.get("品牌方信息"))
-            urls = []
             url = ''
+            urls = []
             if brand_info is not None:
-                urls = list[Any](set(extract_urls(brand_info)))
+                urls = list(set(extract_urls(brand_info)))
             if len(urls) > 0:
-                print(urls)
                 url = urls[0]
+
+            # brand_name 非空时，优先从 config 获取 brand_info 和 brand_website
+            if brand_name and str(brand_name).strip():
+                try:
+                    manager = _get_brand_manager()
+                    match = manager.find_brand(brand_name.strip())
+                    if match and match.get("data"):
+                        data = match["data"]
+                        if data.get("brand_info"):
+                            brand_info = data["brand_info"]
+                        if data.get("brand_website"):
+                            url = data["brand_website"]
+                except Exception as e:
+                    print(f"config_utils find_brand 失败 [{brand_name}]: {e}")
+
             return brand_name, brand_info, url
     except Exception as e:
         print(f"error: {e} . {gemini_ai_resp}")

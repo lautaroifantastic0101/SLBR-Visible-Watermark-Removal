@@ -35,9 +35,16 @@ def normalize_case_number(raw: str) -> str:
     num = num_str.zfill(5)
     return f"{year}-cv-{num}"
 
-def select_crawl_item_content(client, account_id, database_id, id=None, start_pt=None, end_pt=None):
-    """执行 SQL：从 tro_crawl_item_tb 查询 id 与 title+content 拼接内容，返回结果列表。"""
-    sql = """
+def select_crawl_item_content(client, account_id, database_id, id=None, start_pt=None, end_pt=None, source_types=None):
+    """执行 SQL：从 tro_crawl_item_tb 查询 id 与 title+content 拼接内容，返回结果列表。
+    source_types: 逗号分隔的 source_type 列表，如 'CifTRONewsItem,MaijiaxingiquTRONewsItem'；默认使用 CifTRONewsItem, MaijiaxingiquTRONewsItem, QqdipTROItem, RuiguanTROItem
+    """
+    if source_types is None or (isinstance(source_types, str) and not source_types.strip()):
+        source_list = ["CifTRONewsItem", "MaijiaxingiquTRONewsItem", "QqdipTROItem", "RuiguanTROItem"]
+    else:
+        source_list = [s.strip() for s in str(source_types).split(",") if s.strip()]
+    in_clause = ", ".join(f"'{s}'" for s in source_list)
+    sql = f"""
     SELECT
       id,
       COALESCE(json_extract(crawl_item, '$.title'), '') as title,
@@ -45,7 +52,7 @@ def select_crawl_item_content(client, account_id, database_id, id=None, start_pt
       COALESCE(json_extract(crawl_item, '$.case_number'), '') AS case_number,
       gemini_ai_resp
     FROM tro_crawl_item_tb
-    WHERE source_type in ( 'CifTRONewsItem', 'MaijiaxingiquTRONewsItem', 'QqdipTROItem', 'RuiguanTROItem')
+    WHERE source_type in ({in_clause})
     and gemini_ai_resp is not null 
     """
     if id is not None:
@@ -223,6 +230,7 @@ def main():
     parser.add_argument("--start_pt", required=False, type=str, help="处理开始点，可选")
     parser.add_argument("--end_pt", required=False, type=str, help="处理结束点，可选")
     parser.add_argument("--row_ids", required=False, help="以逗号分隔的待处理的row id列表，如: 123,456,789")
+    parser.add_argument("--source_types", required=False, type=str, default="CifTRONewsItem,MaijiaxingiquTRONewsItem,QqdipTROItem,RuiguanTROItem", help="逗号分隔的 source_type 列表，如: CifTRONewsItem,QqdipTROItem")
     args = parser.parse_args()
 
     token = args.cf_d1_api_token or os.getenv("CF_D1_API_TOKEN")
@@ -232,7 +240,8 @@ def main():
     row_ids = args.row_ids
     start_pt = args.start_pt
     end_pt = args.end_pt
-    
+    source_types = args.source_types
+
     if not all([token, account_id, database_id]):
         print("缺少 D1 配置，请提供 --cf_d1_* 或环境变量 CF_D1_API_TOKEN / CF_D1_ACCOUNT_ID / CF_D1_DATABASE_ID")
         return
@@ -242,7 +251,7 @@ def main():
     
     # for debug
     # result = update_is_multi_case_number_and_court_info_and_patent_arr(client, account_id, database_id, id=34)
-    rows = select_crawl_item_content(client, account_id, database_id, id=row_ids, start_pt=start_pt, end_pt=end_pt)
+    rows = select_crawl_item_content(client, account_id, database_id, id=row_ids, start_pt=start_pt, end_pt=end_pt, source_types=source_types)
     print(f"一共筛选出来行数：{len(rows)}")
 
 
