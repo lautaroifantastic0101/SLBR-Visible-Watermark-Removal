@@ -265,7 +265,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
     law_from = _str(gemini and isinstance(gemini, dict) and  gemini.get("原告")) or _str(crawl.get("lawFrom") or crawl.get("law_from"))
 
-    # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
+    # 判断是否为全部大写，如果不是，则转为所有单词首字母大写
     if law_from and not law_from.isupper():
         law_from = law_from.title()
     
@@ -531,11 +531,10 @@ def merge_doc_arr(doc_arr: list) -> dict:
                 arr = list(dict.fromkeys(arr))
             merged[key] = arr if arr else None
         else:
-            # 字符串或标量：取第一个非空
-            for v in values:
-                if v != "" and v is not None:
-                    merged[key] = v
-                    break
+            # 字符串或标量：取信息更丰富的值（字符串取最长，排除空）
+            non_empty = [v for v in values if v != "" and v is not None]
+            if non_empty:
+                merged[key] = max(non_empty, key=lambda x: len(str(x)) if x is not None else 0)
             else:
                 merged[key] = values[0]
     # list / dict 转为 JSON 字符串再输出
