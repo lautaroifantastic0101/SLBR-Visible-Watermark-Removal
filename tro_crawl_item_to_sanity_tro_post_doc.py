@@ -42,6 +42,9 @@ SELECT
   a.ai_model,
   a.updated_at,
   a.case_number_arr,
+  a.brand,
+  a.brand_info,
+  a.brand_website,
   b.crawl_item AS basic_info,
   c.crawl_item AS timeline_info,
   d.new_url_arr,
@@ -50,7 +53,7 @@ FROM (
   SELECT
     id, origin_article_id, crawl_item, gemini_ai_resp, created_at,
     source_type, extract_case_number, extract_court, is_multi_case_number,
-    ai_model, updated_at, case_number_arr
+    ai_model, updated_at, case_number_arr, brand, brand_info, brand_website
   FROM tro_crawl_item_tb
   WHERE source_type = ?
     AND is_multi_case_number = '0'
@@ -284,6 +287,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     ########################################### 
     brand = row.get("brand")
     brand_info = row.get("brand_info")
+    brand_website = row.get("brand_website")
 
     
 
@@ -293,14 +297,14 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
     title = f'{row.get("violation_type")}-品牌{brand}-案件{case_number}'
     
-    brand = _str(gemini and isinstance(gemini, dict) and  gemini.get("品牌方")) or _str(timeline_info and timeline_info.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
+    # brand = _str(gemini and isinstance(gemini, dict) and  gemini.get("品牌方")) or _str(timeline_info and timeline_info.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
     # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
     if brand and not brand.isupper():
         brand = brand.title()
     # brand = 'Elaine Kay Maier' # 用作测试 
 
     # brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
-    brand_info = _parse_brand_info(gemini,basic,timeline_info)
+    # brand_info = _parse_brand_info(gemini,basic,timeline_info)
 
     ###########################################
     # 处理涉及的法院信息
