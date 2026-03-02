@@ -548,8 +548,14 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     "根据case number查询对应的rows，并且返回一个组装好的sanity doc"
     rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
     doc_arr = []
+    if(len(rows) > 0 ):
+        print('有多文档')
+    else:
+        print('单文档')
+        
     for row in rows:
         try:
+            print(row.get('id'))
             doc = row_to_tro_post_doc(row)
             print(doc)
             doc_arr.append(doc)
