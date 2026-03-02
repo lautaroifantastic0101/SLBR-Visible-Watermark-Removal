@@ -7,12 +7,26 @@ class BrandManager:
     def __init__(self, excel_path):
         # 1. 加载 Excel 并转换为字典
         df = pd.read_excel(excel_path)
+
+        # 若 brand 列包含 "||"，按 "||" 拆成多行，其余列复制
+        def split_brand(s):
+            if pd.isna(s):
+                return []
+            s = str(s).strip()
+            if "||" not in s:
+                return [s] if s else []
+            return [p.strip() for p in s.split("||") if p.strip()]
+
+        df["_brand_split"] = df["brand"].apply(split_brand)
+        df = df.explode("_brand_split", ignore_index=True).drop(columns=["brand"]).rename(columns={"_brand_split": "brand"})
+        df = df[df["brand"].astype(str).str.len() > 0]  # 去掉空 brand 行
+
         # 结构：{ 'BrandName': {'brand_website': '...', 'brand_info': '...'} }
         self.config = df.set_index('brand').to_dict(orient='index')
         # 提取所有的 key 用于匹配
         self.brand_list = list(self.config.keys())
 
-    def find_brand(self, query, score_cutoff=60):
+    def find_brand(self, query, score_cutoff=90):
         """
         模糊查询品牌信息
         :param query: 用户输入的字符串
@@ -24,6 +38,7 @@ class BrandManager:
 
         # 2. 使用 rapidfuzz 进行提取
         # processor=utils.default_process 会自动处理大小写、空格和特殊字符
+        # print(self.brand_list)
         result = process.extractOne(
             query, 
             self.brand_list, 
@@ -49,7 +64,7 @@ if __name__ == '__main__':
     manager = BrandManager('config/brand_info_config.xlsx')
 
     # 模拟用户输入，比如拼写错误的 "Niki" 或大小写不一的 "apple inc"
-    user_input = "Niki"
+    user_input = "Fear of God"
     match_result = manager.find_brand(user_input)
     print(match_result)
 
