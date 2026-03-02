@@ -53,8 +53,8 @@ def select_crawl_item_content(client, account_id, database_id, id=None, start_pt
       gemini_ai_resp
     FROM tro_crawl_item_tb
     WHERE source_type in ({in_clause})
-    and gemini_ai_resp is not null 
     """
+    # and gemini_ai_resp is not null 
     if id is not None:
         sql = sql + f" and id IN ({id})"
     
