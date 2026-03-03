@@ -425,7 +425,7 @@ def _normalize_law_type(raw_cp) -> str:
     if not s:
         return ""
     parts = []
-    if "商标" in s or "侵权" in s:
+    if "商标" in s:
         parts.append("商标维权")
     if "专利" in s:
         parts.append("专利维权")
@@ -437,6 +437,8 @@ def _normalize_law_type(raw_cp) -> str:
         if any(k in s for k in ("TRO", "IP", "全方位", "知识产权", "维权")):
             return "商标维权,专利维权,版权维权"
         return ""
+    if len(parts) == 0:
+        parts.append("侵权")
     return ",".join(dict.fromkeys(parts))
 
 
