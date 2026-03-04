@@ -185,14 +185,16 @@ def _parse_timeline_info(timeline_info) -> str:
     # print('parse_timeline', timeline_info)
     progress = timeline_info and timeline_info.get("progress") 
     key = 'event'
+    time_key = 'time'
     if progress is None or len(progress) == 0:
         progress = timeline_info and timeline_info.get("full_timelines")  
         key = 'description'
+        time_key = 'date'
     
     if progress:
         for item in progress:
             timeline_ret.append({
-                "date": item.get("time"),
+                "date": item.get(time_key),
                 "description": item.get(key)
             })
     return json.dumps(timeline_ret)
