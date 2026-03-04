@@ -225,7 +225,7 @@ def _parse_patent_list(raw_string):
     """
     patent_list = []
     if raw_string is None or len(raw_string) < 2:
-        return []
+        return json.dumps([])
     print(raw_string.split(','))
     for pl in raw_string.split(','): 
         print(pl)
@@ -398,7 +398,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "case_progress": case_progress,
         "courtState":court_state,
         "sourceType": row.get("source_type"),
-        "patentList": _parse_patent_list(row.get("patent_arr"))
+        "patentList": _parse_patent_list(row.get("patent_arr")),
     }
     return {k: v for k, v in doc.items() if v is not None}
 
@@ -439,6 +439,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         a.gemini_ai_resp,
         a.patent_arr,
         a.title,
+        a.content,
         a.case_number_arr,
         a.extract_case_number,
         a.source_type,
@@ -462,7 +463,8 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
                     brand_info,
                     brand_website,
                     violation_type,
-                    COALESCE(json_extract(crawl_item, '$.title'), '') as title
+                    COALESCE(json_extract(crawl_item, '$.title'), '') as title,
+                    COALESCE(json_extract(crawl_item, '$.content'), '') as content
             FROM tro_crawl_item_tb
             where extract_case_number = "{case_number}"
             and is_multi_case_number = 0
@@ -571,9 +573,11 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     else:
         print('单文档')
         
+    # content_arr = []
     for row in rows:
         try:
             print(row.get('id'))
+            # content_arr.append(row.get('content'))
             doc = row_to_tro_post_doc(row)
             print(doc)
             doc_arr.append(doc)
@@ -583,11 +587,13 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
             
 
     print(f"{case_number} doc_arr {len(doc_arr)}")
+    ret_doc = None
     if len(doc_arr) > 1:
-        return merge_doc_arr(doc_arr)
+        ret_doc = merge_doc_arr(doc_arr)
     elif len(doc_arr) == 1:
-        return doc_arr[0]
-    return None 
+        ret_doc = doc_arr[0]
+    
+    return ret_doc
 
 def upload_sanity_doc(sanity_project, token, dataset, doc):
     """上传doc文档到sanity_project
