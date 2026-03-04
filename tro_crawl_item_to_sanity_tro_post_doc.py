@@ -183,12 +183,17 @@ def _parse_timeline_info(timeline_info) -> str:
     """将时间线信息转为字典。"""
     timeline_ret = [] 
     # print('parse_timeline', timeline_info)
-    progress = timeline_info and timeline_info.get("progress")
+    progress = timeline_info and timeline_info.get("progress") 
+    key = 'event'
+    if progress is None:
+        progress = timeline_info and timeline_info.get("full_timelines")  
+        key = 'description'
+    
     if progress:
         for item in progress:
             timeline_ret.append({
                 "date": item.get("time"),
-                "description": item.get("event")
+                "description": item.get(key)
             })
     return json.dumps(timeline_ret)
 
@@ -198,9 +203,13 @@ def _parse_progress(timeline_info) -> str:
     full_timelines = timeline_info and timeline_info.get("full_timelines")
     status = "审判中"
     if full_timelines:
+        # full_timelines = list(reversed(full_timelines))
         for item in full_timelines:
-            if 'judgment' in item.get('description'):
+            if 'judgment' in item.get('description').lower():
                 return '已判决'
+
+            if 'temporary restraining order' in item.get('description').lower():
+                return '已发布临时限制令'
     return status
     
 
@@ -454,6 +463,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
                     COALESCE(json_extract(crawl_item, '$.title'), '') as title
             FROM tro_crawl_item_tb
             where extract_case_number = "{case_number}"
+            and is_multi_case_number = 0
             and     source_type in (
             'CifTRONewsItem',
             'MaijiaxingiquTRONewsItem',
@@ -487,6 +497,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         account_id=account_id,
         sql=sql.strip(),
     )
+    print(sql)
     # D1 返回结构: resp.result[0].results 为行列表
     if not resp.result or not resp.result[0].results:
         return []
