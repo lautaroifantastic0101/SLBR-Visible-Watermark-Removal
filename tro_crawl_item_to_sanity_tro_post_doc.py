@@ -185,7 +185,7 @@ def _parse_timeline_info(timeline_info) -> str:
     # print('parse_timeline', timeline_info)
     progress = timeline_info and timeline_info.get("progress") 
     key = 'event'
-    if progress is None:
+    if progress is None or len(progress) == 0:
         progress = timeline_info and timeline_info.get("full_timelines")  
         key = 'description'
     

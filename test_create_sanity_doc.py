@@ -2,7 +2,7 @@ import json
 import sqlite3
 from tro_crawl_item_to_sanity_tro_post_doc import row_to_tro_post_doc
 
-case_number = '2025-cv-00539'
+case_number = '2026-cv-01475'
 filter = '(' + ','.join([f'\'{i}\'' for i in case_number.split(',')]) + ')'
 print(filter)
 sql = f"""
