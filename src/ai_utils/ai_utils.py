@@ -86,11 +86,12 @@ if __name__ == "__main__":
     account_id = os.environ.get("CF_ACCOUNT_ID", "")
     auth_token = os.environ.get("CF_AI_TOKEN", "")
 
-    prompt = "ALBION BRAND FOUNDRY LTD 概括介绍；100个字以内（中文）；"
+    # prompt = "ALBION BRAND FOUNDRY LTD 概括介绍；100个字以内（中文）；"
     # prompt = "返回Crye Precision LLC  official website"
     model = '@cf/meta/llama-3-8b-instruct'
-    clean_prompt = remove_sensitive_segments(prompt)
-    print(clean_prompt)
+    # clean_prompt = remove_sensitive_segments(prompt)
+    # print(clean_prompt)
+    clean_prompt = ''
 
     result = call_llama(account_id, auth_token, model, clean_prompt)
     print(result)
