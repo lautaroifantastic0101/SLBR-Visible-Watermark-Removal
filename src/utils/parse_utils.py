@@ -13,6 +13,33 @@ def _get_brand_manager():
         _brand_manager = BrandManager("config/brand_info_config.xlsx")
     return _brand_manager
 
+
+def remove_sensitive_segments(text: str, sensitive_words: tuple | list = ("赛贝",)) -> str:
+    """
+    按中文逗号、句号分句，去掉包含敏感词的短句，再用原始标点拼接回去。
+
+    Args:
+        text: 原始文本
+        sensitive_words: 敏感词集合，默认 ("赛贝",)。某短句包含任一敏感词则整句删除。
+
+    Returns:
+        删除含敏感词短句后用原标点合并的文本
+    """
+    if not text or not isinstance(text, str):
+        return text or ""
+    parts = re.split(r"([，。])", text)
+    segments = parts[0::2]
+    delimiters = parts[1::2]
+    out = []
+    for i, seg in enumerate(segments):
+        if any(w in seg for w in sensitive_words):
+            continue
+        out.append(seg)
+        if i < len(delimiters):
+            out.append(delimiters[i])
+    return "".join(out)
+
+
 # -----------------------------------------------------------------------------
 # 从文本中提取并解析 JSON
 # -----------------------------------------------------------------------------

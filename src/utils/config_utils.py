@@ -60,22 +60,66 @@ class BrandManager:
 
 
 
+def _most_complete_str(*values):
+    """从多个字符串中取最完整的（非空且更长优先）。"""
+    def norm(v):
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return ""
+        return str(v).strip()
+    candidates = [norm(v) for v in values]
+    non_empty = [s for s in candidates if s]
+    if not non_empty:
+        return candidates[0] if candidates else ""
+    return max(non_empty, key=len)
+
+
+def refine_brand_config_xlsx(input_path: str, output_path: str) -> None:
+    """
+    根据 input 中的 brand_website/brand_web2、brand_info/brand_info2 合并出最完整的
+    brand_website 和 brand_info，写出到 output。
+
+    Input 列：brand, brand_ch_name, brand_type, brand_website, brand_info,
+             brand_info_length, brand_web2, brand_info2
+    Output 列：brand, brand_ch_name, brand_type, brand_website, brand_info
+    """
+    df = pd.read_excel(input_path)
+    df = df.fillna("")
+
+    rows = []
+    for _, row in df.iterrows():
+        brand = row.get("brand", "")
+        brand_ch_name = row.get("brand_ch_name", "")
+        brand_type = row.get("brand_type", "")
+        brand_website = _most_complete_str(row.get("brand_website"), row.get("brand_web2"))
+        brand_info = _most_complete_str(row.get("brand_info"), row.get("brand_info2"))
+        rows.append({
+            "brand": brand,
+            "brand_ch_name": brand_ch_name,
+            "brand_type": brand_type,
+            "brand_website": brand_website,
+            "brand_info": brand_info,
+        })
+    out_df = pd.DataFrame(rows)
+    out_df.to_excel(output_path, index=False)
+
 
 if __name__ == '__main__':
     # --- 使用示例 ---
     # 假设 Excel 文件名为 'brands.xlsx'
-    manager = BrandManager('config/brand_info_config.xlsx')
+    # manager = BrandManager('config/brand_info_config.xlsx')
 
-    # 模拟用户输入，比如拼写错误的 "Niki" 或大小写不一的 "apple inc"
-    user_input = "Fear of God"
-    match_result = manager.find_brand(user_input)
-    print(match_result)
+    # # 模拟用户输入，比如拼写错误的 "Niki" 或大小写不一的 "apple inc"
+    # user_input = "Daimler"
+    # match_result = manager.find_brand(user_input)
+    # print(match_result)
 
-    if match_result:
-        print(f"🎯 匹配成功！")
-        print(f"输入: {user_input} -> 匹配到: {match_result['brand']} (可靠度: {match_result['score']}%)")
-        print(match_result['data'])
-        print(f"网址: {match_result['data']['brand_website']}")
-        print(f"简介: {match_result['data']['brand_info']}")
-    else:
-        print("❌ 未找到匹配的品牌，请检查输入。")
+    # if match_result:
+    #     print(f"🎯 匹配成功！")
+    #     print(f"输入: {user_input} -> 匹配到: {match_result['brand']} (可靠度: {match_result['score']}%)")
+    #     print(match_result['data'])
+    #     print(f"网址: {match_result['data']['brand_website']}")
+    #     print(f"简介: {match_result['data']['brand_info']}")
+    # else:
+    #     print("❌ 未找到匹配的品牌，请检查输入。")
+    refine_brand_config_xlsx('/Users/wushan/Desktop/brand_config_raw.xlsx', '/Users/wushan/Downloads/test_config.xlsx')
+
