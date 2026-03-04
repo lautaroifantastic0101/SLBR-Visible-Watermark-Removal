@@ -417,7 +417,12 @@ def extract_brand_name(gemini_ai_resp):
                 try:
                     manager = _get_brand_manager()
                     match = manager.find_brand(brand_name.strip())
+
                     if match and match.get("data"):
+                        match_brand = match['brand']
+                        match_score = match['score']
+                        if match_score > 80:
+                            brand_name = match_brand
                         data = match["data"]
                         if data.get("brand_info"):
                             brand_info = data["brand_info"]

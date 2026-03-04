@@ -109,7 +109,7 @@ if __name__ == '__main__':
     manager = BrandManager('config/brand_info_config.xlsx')
 
     # 模拟用户输入，比如拼写错误的 "Niki" 或大小写不一的 "apple inc"
-    user_input = "xxx"
+    user_input = "Roku"
     match_result = manager.find_brand(user_input)
     print(match_result)
 
