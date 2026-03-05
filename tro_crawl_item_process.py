@@ -4,10 +4,11 @@ import json
 import os
 import re
 from resource import getrlimit
-from turtle import update
+from turtle import up, update
 from cloudflare import Cloudflare
 from numpy.random.mtrand import f
 
+from src.ai_utils.ai_utils import summarise_case
 from src.utils.parse_utils import extract_brand_name, extract_law_type_info, extract_patent_numbers, extract_us_state, is_gemini_ai_resp_array
 
 
@@ -223,27 +224,61 @@ def complete_basic_info_columns(rows, id=None):
     # return update_sql_arr, update_params_arr
     # return results
 
+def complete_case_brief_column(account_id, cf_ai_api_token, rows):
+    """更新brief 字段
+
+    Args:
+        rows (_type_): _description_
+        
+    return : 需要执行的update sqls
+    """
+    if not rows:
+        return []
+    cnt = 0
+    update_sql_arr = []
+    # update_params_arr = []
+    for row in rows:
+        cnt += 1
+        rid, content = row["id"], row["content"]
+        case_brief = summarise_case(account_id, cf_ai_api_token, content)
+        tmp_sql = (
+            "UPDATE tro_crawl_item_tb SET "
+            f"case_brief = '{case_brief}"
+            f"WHERE id = {rid};"
+        )
+        update_sql_arr.append(tmp_sql)
+
+    return update_sql_arr
+
+
+
 def main():
     parser = argparse.ArgumentParser(description="tro_crawl_item 查询与处理")
     parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可通过环境变量 CF_D1_API_TOKEN 传递")
+    parser.add_argument("--cf_ai_api_token", required=False, help="Cloudflare AI API Token，可通过环境变量 CF_D1_API_TOKEN 传递")
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可通过环境变量 CF_D1_ACCOUNT_ID 传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
     parser.add_argument("--start_pt", required=False, type=str, help="处理开始点，可选")
     parser.add_argument("--end_pt", required=False, type=str, help="处理结束点，可选")
     parser.add_argument("--row_ids", required=False, help="以逗号分隔的待处理的row id列表，如: 123,456,789")
     parser.add_argument("--source_types", required=False, type=str, default="CifTRONewsItem,MaijiaxingiquTRONewsItem,QqdipTROItem,RuiguanTROItem", help="逗号分隔的 source_type 列表，如: CifTRONewsItem,QqdipTROItem")
+    parser.add_argument("--update_case_brief", action="store_true", help="只是更新case_brief字段")
     args = parser.parse_args()
+
 
     token = args.cf_d1_api_token or os.getenv("CF_D1_API_TOKEN")
     account_id = args.cf_d1_account_id or os.getenv("CF_D1_ACCOUNT_ID")
     database_id = args.cf_d1_database_id or os.getenv("CF_D1_DATABASE_ID")
+    cf_ai_api_token = args.cf_ai_api_token
 
     row_ids = args.row_ids
     start_pt = args.start_pt
     end_pt = args.end_pt
     source_types = args.source_types
 
-    if not all([token, account_id, database_id]):
+    update_case_brief = args.update_case_brief
+
+    if not all([token, account_id, database_id, cf_ai_api_token]):
         print("缺少 D1 配置，请提供 --cf_d1_* 或环境变量 CF_D1_API_TOKEN / CF_D1_ACCOUNT_ID / CF_D1_DATABASE_ID")
         return
 
@@ -256,7 +291,17 @@ def main():
     print(f"一共筛选出来行数：{len(rows)}")
 
 
-    update_sqls = complete_basic_info_columns(rows)
+    if update_case_brief:
+        print("只是更新case_brief字段")
+        update_sqls = complete_case_brief_column(account_id, cf_ai_api_token, rows)
+        print(update_sqls)
+        return 
+        
+        
+    else:
+        update_sqls = complete_basic_info_columns(rows)
+        
+
     print(f"共处理 {len(update_sqls)} 条")
 
     ################################################################
