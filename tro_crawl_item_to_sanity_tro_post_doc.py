@@ -399,6 +399,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
         "courtState":court_state,
         "sourceType": row.get("source_type"),
         "patentList": _parse_patent_list(row.get("patent_arr")),
+        "caseBrief": row.get("case_brief") or ''
     }
     return {k: v for k, v in doc.items() if v is not None}
 
@@ -447,6 +448,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         a.brand_info,
         a.brand_website,
         a.violation_type,
+        a.case_brief,
         b.crawl_item AS basic_info,
         c.crawl_item AS timeline_info,
         d.new_url_arr,
@@ -464,7 +466,8 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
                     brand_website,
                     violation_type,
                     COALESCE(json_extract(crawl_item, '$.title'), '') as title,
-                    COALESCE(json_extract(crawl_item, '$.content'), '') as content
+                    COALESCE(json_extract(crawl_item, '$.content'), '') as content,
+                    case_brief
             FROM tro_crawl_item_tb
             where extract_case_number = "{case_number}"
             and is_multi_case_number = 0
