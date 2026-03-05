@@ -141,6 +141,8 @@ PATENT_NUMBER_PATTERN = re.compile(
 )
 
 
+
+
 def extract_patent_numbers(text: str, unique: bool = True):
     """
     从文本中提取专利号，返回匹配到的字符串列表。
@@ -335,6 +337,34 @@ def is_gemini_ai_resp_array(gemini_ai_resp) -> bool:
     except Exception as e:
         print(f"error: {e} . {gemini_ai_resp}")
         return False
+
+
+def extract_copyright_numbers(text: str, unique: bool = True) -> list[str]:
+    """
+    从文本中提取版权登记号，格式如 VA 2-467-346、VA 2-465-678（美国版权局 VA/PA/SR/TX 等）。
+
+    Args:
+        text: 原始文本
+        unique: 是否去重，默认 True
+
+    Returns:
+        匹配到的版权号列表，如 ["VA 2-467-346", "VA 2-465-678"]
+    """
+    if not text or not isinstance(text, str):
+        return []
+    # VA/PA/SR/TX 等前缀 + 空格 + 数字-数字-数字
+    pattern = r"(?:VA|PA|SR|TX)\s*\d+-\d+-\d+"
+    found = re.findall(pattern, text, re.IGNORECASE)
+    # 统一为 "VA 2-467-346" 形式（前缀后保留一个空格）
+    normalized = []
+    for s in found:
+        s = s.strip()
+        if re.match(r"^[A-Za-z]+\s*", s):
+            s = re.sub(r"^([A-Za-z]+)\s*", lambda m: m.group(1).upper() + " ", s, count=1)
+        normalized.append(s)
+    if unique:
+        return list(dict.fromkeys(normalized))
+    return normalized
 
 
 def extract_urls(text):

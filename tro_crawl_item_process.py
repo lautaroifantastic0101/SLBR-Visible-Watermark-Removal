@@ -1,5 +1,6 @@
 import argparse
 from ast import Num
+import copy
 import json
 import os
 import re
@@ -9,7 +10,7 @@ from cloudflare import Cloudflare
 from numpy.random.mtrand import f
 
 from src.ai_utils.ai_utils import summarise_case
-from src.utils.parse_utils import extract_brand_name, extract_law_type_info, extract_patent_numbers, extract_us_state, is_gemini_ai_resp_array
+from src.utils.parse_utils import extract_brand_name, extract_copyright_numbers, extract_law_type_info, extract_patent_numbers, extract_us_state, is_gemini_ai_resp_array
 
 
 
@@ -172,9 +173,11 @@ def complete_basic_info_columns(rows, id=None):
             court_info = ''
 
         ##########################################
-        # 提取patent信息
+        # 提取patent信息 包括 版权信息
         ##########################################
         patent_info = extract_patent_numbers(content, True)
+        copyright_info = extract_copyright_numbers(content, True)
+        patent_info.extend(copyright_info)
         d = ','.join(patent_info)
 
         ##########################################
