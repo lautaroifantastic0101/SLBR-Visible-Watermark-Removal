@@ -178,7 +178,7 @@ def complete_basic_info_columns(rows, id=None):
         patent_info = extract_patent_numbers(content, True)
         copyright_info = extract_copyright_numbers(content, True)
         patent_info.extend(copyright_info)
-        d = ','.join(patent_info)
+        d = json.dumps(patent_info)
 
         ##########################################
         # 提取brand信息

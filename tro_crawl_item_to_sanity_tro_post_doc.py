@@ -14,7 +14,7 @@ import requests
 from sympy import E, EX
 
 from src.utils.config_utils import BrandManager
-from src.utils.parse_utils import extract_us_state, parse_json_text, to_str_ob
+from src.utils.parse_utils import extract_us_state, is_copyright_number, parse_json_text, to_str_ob
 
 load_dotenv()
 
@@ -224,12 +224,13 @@ def _parse_patent_list(raw_string):
         raw_string (_type_): _description_
     """
     patent_list = []
-    if raw_string is None or len(raw_string) < 2:
+    if raw_string is None or len(raw_string) < 3:
         return json.dumps([])
-    print(raw_string.split(','))
-    for pl in raw_string.split(','): 
-        print(pl)
-        ob = {"patentNumber":  pl, "title": "", "type": "外观专利"}
+
+    for pl in json.loads(raw_string):
+        pl_str = str(pl).strip() if pl is not None else ""
+        item_type = "版权" if is_copyright_number(pl_str) else "外观专利"
+        ob = {"patentNumber": pl_str, "title": "", "type": item_type}
         patent_list.append(ob)
         
     return json.dumps(patent_list)

@@ -339,6 +339,25 @@ def is_gemini_ai_resp_array(gemini_ai_resp) -> bool:
         return False
 
 
+# 版权登记号格式：VA 2-467-346、PA 1-234-567 等（美国版权局）
+_COPYRIGHT_PATTERN = re.compile(r"^(?:VA|PA|SR|TX)\s*\d+-\d+-\d+$", re.IGNORECASE)
+
+
+def is_copyright_number(s: str) -> bool:
+    """
+    判断单个字符串是否为版权登记号（如 VA 2-467-346），否则视为专利号。
+
+    Args:
+        s: 待判断的字符串（可能为专利号或版权号）
+
+    Returns:
+        True 表示版权号，False 表示专利号
+    """
+    if not s or not isinstance(s, str):
+        return False
+    return bool(_COPYRIGHT_PATTERN.match(str(s).strip()))
+
+
 def extract_copyright_numbers(text: str, unique: bool = True) -> list[str]:
     """
     从文本中提取版权登记号，格式如 VA 2-467-346、VA 2-465-678（美国版权局 VA/PA/SR/TX 等）。
