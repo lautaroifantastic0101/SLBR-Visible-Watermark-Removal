@@ -94,7 +94,9 @@ def summarise_case(account_id, auth_token, content):
 
     resp = parsed["response"]
     if "：" in resp:
-        return ''.join(resp.split("：")[1:])
+        return ''.join(resp.split("：")[1:]).strip()
+    elif ":" in resp:
+        return ''.join(resp.split(":")[1:]).strip()
     else:
         return resp 
 

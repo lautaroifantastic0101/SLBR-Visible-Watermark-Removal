@@ -243,7 +243,7 @@ def complete_case_brief_column(account_id, cf_ai_api_token, rows):
         case_brief = summarise_case(account_id, cf_ai_api_token, content)
         tmp_sql = (
             "UPDATE tro_crawl_item_tb SET "
-            f"case_brief = '{case_brief}'"
+            f"case_brief = '{case_brief}' "
             f"WHERE id = {rid};"
         )
         update_sql_arr.append(tmp_sql)
