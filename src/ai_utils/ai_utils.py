@@ -85,13 +85,19 @@ def summarise_case(account_id, auth_token, content):
     """调用 AI 模型对 content（如案件内容）进行概括，返回概括文本（中文）。"""
     MODEL = "@cf/meta/llama-3-8b-instruct"
     system_content = "你是一个法律案件摘要助手，请用中文简洁概括给定内容。"
-    prompt = f"请对以下内容进行概括（中文，200字以内）：\n\n{content or ''}"
+    if len(content) <= 80:
+        return remove_sensitive_segments(content)
+    prompt = f"请对以下内容进行概括（中文，80字以内）：  {content or ''}"
     clean_prompt = remove_sensitive_segments(prompt)
     result = call_llama(account_id, auth_token, MODEL, clean_prompt, system_content)
     parsed = parse_ai_response(result)
-    return parsed["response"]
 
-    
+    resp = parsed["response"]
+    if "：" in resp:
+        return ''.join(resp.split("：")[1:])
+    else:
+        return resp 
+
     
 if __name__ == "__main__":
     account_id = os.environ.get("CF_ACCOUNT_ID", "")
