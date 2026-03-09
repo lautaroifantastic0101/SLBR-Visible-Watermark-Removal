@@ -383,6 +383,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
 
 
+    print("law_date", law_date)
     doc = {
         "_id": case_number,
         "caseNumber": case_number,
