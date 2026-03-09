@@ -14,7 +14,7 @@ def _get_brand_manager():
     return _brand_manager
 
 
-def remove_sensitive_segments(text: str, sensitive_words: tuple | list = ("赛贝",)) -> str:
+def remove_sensitive_segments(text: str, sensitive_words: tuple | list = ("赛贝","雨果" ,"麦小天")) -> str:
     """
     按中文逗号、句号分句，去掉包含敏感词的短句，再用原始标点拼接回去。
 
