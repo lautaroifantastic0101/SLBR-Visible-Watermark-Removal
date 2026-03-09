@@ -129,8 +129,11 @@ def _normalize_date(s: str):
             return f"{parts[2]}-{int(parts[1]):02d}-{int(parts[0]):02d}"
         return f"{parts[2]}-{int(parts[0]):02d}-{int(parts[1]):02d}"
     if re.match(r"^\d{4}年\d{1,2}月\d{1,2}日$", s):
-        parts = s.split("-")
-        return f"{parts[0]}-{int(parts[1]):02d}-{int(parts[2]):02d}"
+        pattern = r"(?P<year>\d{4})年(?P<month>\d{2})月(?P<day>\d{2})日"
+        match = re.search(pattern, s)
+        data = match.groupdict()
+
+        return f"{data['year']}-{data['month']}-{data['day']}"
     
     return s if re.match(r"^\d{4}-\d{2}-\d{2}$", s) else None
 
