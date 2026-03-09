@@ -3,6 +3,16 @@ import pandas as pd
 import pandas as pd
 from rapidfuzz import process, utils
 
+from src.utils.parse_utils import extract_urls
+
+
+
+"""配置文件处理
+
+Returns:
+    _type_: _description_
+"""
+
 class BrandManager:
     def __init__(self, excel_path):
         # 1. 加载 Excel 并转换为字典
@@ -102,24 +112,53 @@ def refine_brand_config_xlsx(input_path: str, output_path: str) -> None:
     out_df = pd.DataFrame(rows)
     out_df.to_excel(output_path, index=False)
 
+def refine_brand_config_xlsx_same(input_path: str, output_path: str) -> None:
+    df = pd.read_excel(input_path)
+    df = df.fillna("")
+
+
+    rows = []
+    for _, row in df.iterrows():
+        brand = row.get("brand", "")
+        brand_ch_name = row.get("brand_ch_name", "")
+        brand_type = row.get("brand_type", "")
+        brand_website = _most_complete_str(row.get("brand_website"), row.get("brand_web"))
+        brand_info = row.get("brand_info")
+        rows.append({
+            "brand": brand,
+            "brand_ch_name": brand_ch_name,
+            "brand_type": brand_type,
+            "brand_website": brand_website,
+            "brand_info": brand_info,
+        })
+        if len(brand_website) <= 3:
+            urls = extract_urls(brand_info)
+            if len(urls) > 0:
+                print(urls, brand_info)
+            
+    out_df = pd.DataFrame(rows)
+
+
+
+
 
 if __name__ == '__main__':
     # --- 使用示例 ---
     # 假设 Excel 文件名为 'brands.xlsx'
-    manager = BrandManager('config/brand_info_config.xlsx')
+    # manager = BrandManager('config/brand_info_config.xlsx')
 
-    # 模拟用户输入，比如拼写错误的 "Niki" 或大小写不一的 "apple inc"
-    user_input = "Roku"
-    match_result = manager.find_brand(user_input)
-    print(match_result)
+    # # 模拟用户输入，比如拼写错误的 "Niki" 或大小写不一的 "apple inc"
+    # user_input = "Roku"
+    # match_result = manager.find_brand(user_input)
+    # print(match_result)
 
-    if match_result:
-        print(f"🎯 匹配成功！")
-        print(f"输入: {user_input} -> 匹配到: {match_result['brand']} (可靠度: {match_result['score']}%)")
-        print(match_result['data'])
-        print(f"网址: {match_result['data']['brand_website']}")
-        print(f"简介: {match_result['data']['brand_info']}")
-    else:
-        print("❌ 未找到匹配的品牌，请检查输入。")
-    # refine_brand_config_xlsx('/Users/wushan/Desktop/brand_config_raw.xlsx', '/Users/wushan/Downloads/test_config.xlsx')
+    # if match_result:
+    #     print(f"🎯 匹配成功！")
+    #     print(f"输入: {user_input} -> 匹配到: {match_result['brand']} (可靠度: {match_result['score']}%)")
+    #     print(match_result['data'])
+    #     print(f"网址: {match_result['data']['brand_website']}")
+    #     print(f"简介: {match_result['data']['brand_info']}")
+    # else:
+    #     print("❌ 未找到匹配的品牌，请检查输入。")
+    refine_brand_config_xlsx_same('/Users/wushan/Desktop/brand_info_config_raw.xlsx', '/Users/wushan/Downloads/test_config.xlsx')
 
