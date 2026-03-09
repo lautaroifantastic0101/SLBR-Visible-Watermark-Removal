@@ -54,8 +54,7 @@ def select_crawl_item_content(client, account_id, database_id, id=None, start_pt
       COALESCE(json_extract(crawl_item, '$.case_number'), '') AS case_number,
       gemini_ai_resp
     FROM tro_crawl_item_tb
-    WHERE is_multi_case_number = 0 
-    and  source_type in ({in_clause})
+    WHERE  source_type in ({in_clause})
     """
     # and gemini_ai_resp is not null 
     if id is not None:
