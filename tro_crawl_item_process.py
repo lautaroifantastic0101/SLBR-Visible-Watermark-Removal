@@ -243,6 +243,7 @@ def complete_case_brief_column(account_id, cf_ai_api_token, rows):
         cnt += 1
         rid, content = row["id"], row["content"]
         case_brief = summarise_case(account_id, cf_ai_api_token, content)
+        print("case brief", case_brief)
         tmp_sql = (
             "UPDATE tro_crawl_item_tb SET "
             f"case_brief = '{case_brief}'  and updated_at = CURRENT_TIMESTAMP "
