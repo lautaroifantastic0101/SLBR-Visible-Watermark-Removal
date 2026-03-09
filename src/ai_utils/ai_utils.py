@@ -1,3 +1,4 @@
+import json
 import os
 import requests
 
@@ -91,6 +92,7 @@ def summarise_case(account_id, auth_token, content):
     clean_prompt = remove_sensitive_segments(prompt)
     print(clean_prompt)
     result = call_llama(account_id, auth_token, MODEL, clean_prompt, system_content)
+    print('result', json.dumps(result))
     parsed = parse_ai_response(result)
 
     resp = parsed["response"]
