@@ -297,7 +297,7 @@ def main():
     if update_case_brief:
         print("只是更新case_brief字段")
         update_sqls = complete_case_brief_column(account_id, cf_ai_api_token, rows)
-        # print(update_sqls)
+        print(update_sqls)
         # return 
         
         
