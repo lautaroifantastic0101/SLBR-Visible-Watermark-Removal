@@ -246,7 +246,7 @@ def complete_case_brief_column(account_id, cf_ai_api_token, rows):
         print("case brief", case_brief)
         tmp_sql = (
             "UPDATE tro_crawl_item_tb SET "
-            f"case_brief = '{case_brief}'  and updated_at = CURRENT_TIMESTAMP "
+            f"case_brief = '{case_brief}'  , updated_at = CURRENT_TIMESTAMP "
             f"WHERE id = {rid};"
         )
         update_sql_arr.append(tmp_sql)
@@ -297,7 +297,7 @@ def main():
     if update_case_brief:
         print("只是更新case_brief字段")
         update_sqls = complete_case_brief_column(account_id, cf_ai_api_token, rows)
-        print(update_sqls)
+        # print(update_sqls)
         # return 
         
         
