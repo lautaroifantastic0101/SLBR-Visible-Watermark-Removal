@@ -7,6 +7,7 @@ from pydoc import cli
 import re
 import select
 import time
+from turtle import up
 from typing import Any
 from dotenv import load_dotenv
 from numpy import isin
@@ -128,9 +129,9 @@ def _normalize_date(s: str):
         if int(parts[0]) > 12:
             return f"{parts[2]}-{int(parts[1]):02d}-{int(parts[0]):02d}"
         return f"{parts[2]}-{int(parts[0]):02d}-{int(parts[1]):02d}"
-    print('debug', s)
+    # print('debug', s)
     if re.match(r"^\d{4}年\d{1,2}月\d{1,2}日$", s):
-        print('debug in match', s)
+        # print('debug in match', s)
         pattern = r"(?P<year>\d{4})年(?P<month>\d{2})月(?P<day>\d{2})日"
         match = re.search(pattern, s)
         data = match.groupdict()
@@ -287,12 +288,12 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 立案日期处理
     ###########################################  
     law_date_raw = _str(gemini and isinstance(gemini, dict) and gemini.get("起诉日期")) or _str(timeline_info and timeline_info.get("release_time")) or _str(basic and basic.get("prosecution_time")) or _str(crawl.get("lawDate") or crawl.get("law_date"))
-    print('debug', isinstance(gemini, dict))
-    print('debug', isinstance(gemini, dict) and gemini.get("起诉日期"))
+    # print('debug', isinstance(gemini, dict))
+    # print('debug', isinstance(gemini, dict) and gemini.get("起诉日期"))
     
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
     # print("[fordebug]原告", gemini.get("原告"))
-    print('for debug', law_date)
+    # print('for debug', law_date)
     
     
     
@@ -536,7 +537,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         account_id=account_id,
         sql=sql.strip(),
     )
-    print("【for debug】", sql)
+    # print("【for debug】", sql)
     # D1 返回结构: resp.result[0].results 为行列表
     if not resp.result or not resp.result[0].results:
         return []
@@ -746,6 +747,8 @@ def main():
     ######################################################
     # 【筛选】出来哪些case number需要更新的，只是返回case number
     ######################################################
+    generated_docs = []
+    uploaded_docs = []
     if case_numbers is None:
         if start_pt and end_pt:
             rows = select_case_number_by_updated_at(client, account_id, database_id, start_pt, end_pt, limit=limit, exclude_cvs=exclude_cvs)
@@ -775,11 +778,15 @@ def main():
         for case_n in case_numbers.split(','):
             doc = create_sanity_doc_by_case_number(client, account_id,  database_id, case_n)
             print(doc)
+            generated_docs.append(case_n)
             if args.upload and doc is not None:
                 if not sanity_project or not sanity_token:
                     print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
                     return 
                 upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
+                uploaded_docs.append(case_n)
+        print(f"一共生成{len(generated_docs)}, {','.join(generated_docs)}")
+        print(f"一共上传{len(uploaded_docs)}, {','.join(uploaded_docs)}")
 
     ######################################################
     # 【上传】生成doc，并且上传到sanity系统中
