@@ -286,11 +286,13 @@ def row_to_tro_post_doc(row: dict) -> dict:
     
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
     print("[fordebug]原告", gemini.get("原告"))
-    law_from = _str(gemini and isinstance(gemini, dict) and  gemini.get("原告")) or _str(crawl.get("lawFrom") or crawl.get("law_from"))
+    
+    
+    
 
-    # 判断是否为全部大写，如果不是，则转为所有单词首字母大写
-    if law_from and not law_from.isupper():
-        law_from = law_from.title()
+    
+    
+    
     
     law_firm = _str(gemini and isinstance(gemini, dict) and gemini.get("律所")) or _str(timeline_info and timeline_info.get("law_firm")) or _str(basic and basic.get("law_firm")) or _str(crawl.get("lawFirm") or crawl.get("law_firm"))
     if law_firm and not law_firm.isupper():
@@ -306,22 +308,13 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
     
     ###########################################
-    # 处理涉及的品牌类型
+    # 处理涉及的品牌信息
     ########################################### 
     brand = row.get("brand")
     brand_desc = row.get("brand_info")
     brand_website = row.get("brand_website")
     # 组装brand info
     brand_info = json.dumps({"name":brand, "contact":brand_website, "description":brand_desc})
-
-    
-
-    ###########################################
-    # 标题 
-    ########################################### 
-    # title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
-    title = f'{row.get("violation_type")}-品牌{brand}-案件{case_number}'
-    
     # brand = _str(gemini and isinstance(gemini, dict) and  gemini.get("品牌方")) or _str(timeline_info and timeline_info.get("brand")) or _str(basic and basic.get("brand")) or _str(crawl.get("brand"))
     # 判断brand是否为全部大写，如果不是，则转为所有单词首字母大写
     if brand and not brand.isupper():
@@ -330,6 +323,26 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
     # brand_info = _str(gemini and gemini.get("品牌方信息")) or _str(crawl.get("brandInfo") or crawl.get("brand_info"))
     # brand_info = _parse_brand_info(gemini,basic,timeline_info)
+
+    
+    ###########################################
+    # 提取原告信息
+    ########################################### 
+    law_from = _str(gemini and isinstance(gemini, dict) and  gemini.get("原告")) or _str(crawl.get("lawFrom") or crawl.get("law_from")) or brand 
+
+    # 判断是否为全部大写，如果不是，则转为所有单词首字母大写
+    if law_from and not law_from.isupper():
+        law_from = law_from.title()
+    
+    
+
+    ###########################################
+    # 标题 
+    ########################################### 
+    # title = _str(gemini and gemini.get("案件标题")) or _str(timeline_info and timeline_info.get("title")) or _str(crawl.get("title"))
+    title = f'{row.get("violation_type")}-品牌{brand}-案件{case_number}'
+    
+
 
     ###########################################
     # 处理涉及的法院信息
