@@ -14,7 +14,8 @@ test_cases = [
     "!!!Hello World 123***",
     "---2026-03-06---",
     "  #Python@  ",
-    "123abc456"
+    "123abc456",
+    "：Western District of Pennsylvania"
 ]
 
 for t in test_cases:

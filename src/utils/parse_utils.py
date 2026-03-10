@@ -268,6 +268,17 @@ US_STATE_ABBR_TO_EN = {
 }
 
 
+
+def clean_edges(text):
+    # 正则逻辑：
+    # ^[^a-zA-Z0-9]+  -> 匹配开头所有“非字母、非数字”的字符
+    # |               -> 或
+    # [^a-zA-Z0-9]+$  -> 匹配结尾所有“非字母、非数字”的字符
+    pattern = r"^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$"
+    
+    # 将匹配到的部分替换为空字符串
+    return re.sub(pattern, "", text)
+
 def extract_us_state(text: str):
     """从字符串中提取美国州信息，返回中文州名。支持中文法院名（如 伊利诺伊州北区法院）和英文（如 Northern District of Illinois）。"""
     if not text or not isinstance(text, str):
