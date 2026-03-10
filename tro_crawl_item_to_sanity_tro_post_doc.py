@@ -280,12 +280,17 @@ def row_to_tro_post_doc(row: dict) -> dict:
 
     case_number = _case_number_year_to_2_digits(case_number)
 
+
+    ###########################################
+    # 立案日期处理
+    ###########################################  
     law_date_raw = _str(gemini and isinstance(gemini, dict) and gemini.get("起诉日期")) or _str(timeline_info and timeline_info.get("release_time")) or _str(basic and basic.get("prosecution_time")) or _str(crawl.get("lawDate") or crawl.get("law_date"))
     print('debug', isinstance(gemini, dict))
     print('debug', isinstance(gemini, dict) and gemini.get("起诉日期"))
     
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
     # print("[fordebug]原告", gemini.get("原告"))
+    print('for debug', law_date)
     
     
     
