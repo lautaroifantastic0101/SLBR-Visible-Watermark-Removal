@@ -8,6 +8,9 @@ from resource import getrlimit
 from turtle import up, update
 from cloudflare import Cloudflare
 from numpy.random.mtrand import f
+from rapidfuzz import process
+from sympy import preorder_traversal
+from sympy.simplify.fu import process_common_addends
 
 from src.ai_utils.ai_utils import summarise_case
 from src.utils.parse_utils import extract_brand_name, extract_copyright_numbers, extract_law_type_info, extract_patent_numbers, extract_us_state, is_gemini_ai_resp_array
@@ -49,6 +52,7 @@ def select_crawl_item_content(client, account_id, database_id, id=None, start_pt
     sql = f"""
     SELECT
       id,
+      origin_article_id,
       COALESCE(json_extract(crawl_item, '$.title'), '') as title,
       COALESCE(json_extract(crawl_item, '$.content'), '') AS content,
       COALESCE(json_extract(crawl_item, '$.case_number'), '') AS case_number,
@@ -72,7 +76,7 @@ def select_crawl_item_content(client, account_id, database_id, id=None, start_pt
     # D1 返回结构: resp.result[0].results 为行列表
     if not resp.result or not resp.result[0].results:
         return []
-    return [{"id": row["id"], "content": row["content"] or "", "title": row["title"] or "", "case_number": row["case_number"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or ""} for row in resp.result[0].results]
+    return [{"id": row["id"], "content": row["content"] or "", "title": row["title"] or "", "case_number": row["case_number"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or "", "origin_article_id":row["origin_article_id"] or ""} for row in resp.result[0].results]
 
 
 def find_case_numbers(content: str):
@@ -92,6 +96,8 @@ def complete_basic_info_columns(rows, id=None):
     更新表中court_info字段
     更新表中brand字段信息
     """
+    with open('config/preprocess_config.json', 'r', encoding='utf-8') as f:
+        preprocess_config = json.load(f)
     if not rows:
         return []
     results = []
@@ -100,7 +106,7 @@ def complete_basic_info_columns(rows, id=None):
     # update_params_arr = []
     for row in rows:
         cnt += 1
-        rid, content, title, case_number, gemini_ai_resp = row["id"], row["content"], row['title'], row['case_number'], row['gemini_ai_resp']
+        rid, content, title, case_number, gemini_ai_resp, origin_article_id = row["id"], row["content"], row['title'], row['case_number'], row['gemini_ai_resp'], row['origin_article_id']
 
         # 抓取的内容中存在case number
         content_case_numbers = find_case_numbers(content)
@@ -195,6 +201,13 @@ def complete_basic_info_columns(rows, id=None):
         ##########################################
         # 生成更新的 sql 参数并加入批次（参数化执行，避免注入与引号问题）
         ##########################################
+        if origin_article_id in preprocess_config:
+            config = preprocess_config[origin_article_id]
+            if 'brand' in config:
+                brand = config['brand']
+            if 'case_number_arr' in config:
+                case_number_arr_json = config['case_number_arr']
+            
         tmp_sql = (
             "UPDATE tro_crawl_item_tb SET "
             f"is_multi_case_number = '{is_multi}', extract_case_number = '{extract_case_num_column}', case_number_arr = '{case_number_arr_json}', "
