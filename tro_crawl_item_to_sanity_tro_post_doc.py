@@ -14,7 +14,7 @@ import requests
 from sympy import E, EX
 
 from src.utils.config_utils import BrandManager
-from src.utils.parse_utils import extract_us_state, is_copyright_number, parse_json_text, to_str_ob
+from src.utils.parse_utils import clean_edges, extract_us_state, is_copyright_number, parse_json_text, to_str_ob
 
 load_dotenv()
 
@@ -262,7 +262,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     def _str(v, default=None):
         if v is None or v == "":
             return default
-        s = str(v).strip()
+        s = clean_edges(str(v).strip())
         return s if s else default
 
     # 优先级：gemini > timeline > basic > crawl > row 直字段
@@ -285,12 +285,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     print('debug', isinstance(gemini, dict) and gemini.get("起诉日期"))
     
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
-    print("[fordebug]原告", gemini.get("原告"))
-    
-    
-    
-
-    
+    # print("[fordebug]原告", gemini.get("原告"))
     
     
     

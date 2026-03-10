@@ -131,6 +131,7 @@ def refine_brand_config_xlsx_same(input_path: str, output_path: str) -> None:
             "brand_website": brand_website,
             "brand_info": brand_info,
         })
+        
         if len(brand_website) <= 3:
             urls = extract_urls(brand_info)
             if len(urls) > 0:
