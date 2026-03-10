@@ -180,7 +180,9 @@ def complete_basic_info_columns(rows, id=None):
         ##########################################
         # 提取patent信息 包括 版权信息
         ##########################################
+        print("debug", content)
         patent_info = extract_patent_numbers(content, True)
+        print("debug", patent_info)
         copyright_info = extract_copyright_numbers(content, True)
         patent_info.extend(copyright_info)
         d = json.dumps(patent_info)
