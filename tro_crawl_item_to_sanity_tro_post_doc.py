@@ -128,7 +128,9 @@ def _normalize_date(s: str):
         if int(parts[0]) > 12:
             return f"{parts[2]}-{int(parts[1]):02d}-{int(parts[0]):02d}"
         return f"{parts[2]}-{int(parts[0]):02d}-{int(parts[1]):02d}"
+    print('debug', s)
     if re.match(r"^\d{4}年\d{1,2}月\d{1,2}日$", s):
+        print('debug in match', s)
         pattern = r"(?P<year>\d{4})年(?P<month>\d{2})月(?P<day>\d{2})日"
         match = re.search(pattern, s)
         data = match.groupdict()
