@@ -474,6 +474,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         a.case_number_arr,
         a.extract_case_number,
         a.source_type,
+        a.extract_court,
         a.brand,
         a.brand_info,
         a.brand_website,
@@ -495,6 +496,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
                     brand_info,
                     brand_website,
                     violation_type,
+                    extract_court,
                     COALESCE(json_extract(crawl_item, '$.title'), '') as title,
                     COALESCE(json_extract(crawl_item, '$.content'), '') as content,
                     case_brief
