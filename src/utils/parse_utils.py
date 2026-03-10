@@ -276,8 +276,9 @@ def clean_edges(text):
     # [^a-zA-Z0-9]+$  -> 匹配结尾所有“非字母、非数字”的字符
     pattern = r"^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$"
     
+    return re.sub(r"^[^\u4e00-\u9fa5a-zA-Z0-9]+|[^\u4e00-\u9fa5a-zA-Z0-9]+$", "", text)
     # 将匹配到的部分替换为空字符串
-    return re.sub(pattern, "", text)
+    # return re.sub(pattern, "", text)
 
 def extract_us_state(text: str):
     """从字符串中提取美国州信息，返回中文州名。支持中文法院名（如 伊利诺伊州北区法院）和英文（如 Northern District of Illinois）。"""
