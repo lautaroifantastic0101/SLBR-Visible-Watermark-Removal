@@ -333,7 +333,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     ###########################################
     # 处理涉及的法院信息
     ########################################### 
-    court_info = _str(timeline_info and timeline_info.get("court")) or _str(row.get("extract_court"))
+    court_info = _str(timeline_info and timeline_info.get("court")) or _str(basic and basic.get("court")) or _str(row.get("extract_court"))
     court_state = extract_us_state(court_info) + "州" if court_info and extract_us_state(court_info) else None
 
 
@@ -491,17 +491,21 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
             )
         ) a
         LEFT OUTER JOIN (
-        SELECT id, crawl_item, extract_case_number
-        FROM tro_crawl_item_tb
-        WHERE source_type IN ('PgprintsTROItem')
+            SELECT  max(crawl_item) as crawl_item, extract_case_number
+            FROM tro_crawl_item_tb
+            WHERE source_type IN ('PgprintsTROItem', 'MaijiaxingqiuTROItem')
+            and extract_case_number = "{case_number}"
+            group by extract_case_number 
         ) b ON a.extract_case_number = b.extract_case_number
         LEFT OUTER JOIN (
-        SELECT id, crawl_item, extract_case_number
-        FROM tro_crawl_item_tb
-        WHERE source_type IN ('Tro61TROItem')
-            AND is_multi_case_number = '0'
-            AND extract_case_number IS NOT NULL
-        ) c ON a.extract_case_number = TRIM(c.extract_case_number)
+            SELECT max(crawl_item) as crawl_item, extract_case_number
+            FROM tro_crawl_item_tb
+            WHERE source_type IN ('Tro61TROItem', 'MaijiaxingqiuTROItem')
+                AND is_multi_case_number = '0'
+                AND extract_case_number IS NOT NULL
+                and TRIM(extract_case_number) = "{case_number}"
+            group by extract_case_number
+            ) c ON a.extract_case_number = TRIM(c.extract_case_number)
         LEFT OUTER JOIN (
         SELECT
             origin_post_id,
@@ -516,7 +520,7 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         account_id=account_id,
         sql=sql.strip(),
     )
-    print(sql)
+    print("【for debug】", sql)
     # D1 返回结构: resp.result[0].results 为行列表
     if not resp.result or not resp.result[0].results:
         return []
