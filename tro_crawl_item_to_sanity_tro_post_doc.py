@@ -203,8 +203,8 @@ def _parse_timeline_info(timeline_info) -> str:
     if progress:
         for item in progress:
             timeline_ret.append({
-                "date": item.get(time_key),
-                "description": item.get(key)
+                "date": item.get(time_key) or item.get("row_date"),
+                "description": item.get(key) or item.get("document_name")
             })
     return json.dumps(timeline_ret)
 
