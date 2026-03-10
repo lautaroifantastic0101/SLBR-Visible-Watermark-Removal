@@ -19,7 +19,7 @@ from src.utils.parse_utils import extract_brand_name, extract_copyright_numbers,
 
 # 案号格式：如 25-cv-06628、2025-cv-06628（数字-cv-数字）；统一化为 2025-cv-06628（4位年-cv-5位号）
 # 24-cv-12815
-CASE_NUMBER_PATTERN = re.compile(fr"(\d{2,4})-cv-(\d{3,8})", re.IGNORECASE)
+CASE_NUMBER_PATTERN = re.compile(r"(\d{2,4})-cv-(\d{3,5})", re.IGNORECASE)
 
 # 每批执行的 UPDATE 条数
 UPDATE_BATCH_SIZE = 100
@@ -108,7 +108,14 @@ def complete_basic_info_columns(rows, id=None):
         cnt += 1
         rid, content, title, case_number, gemini_ai_resp, origin_article_id = row["id"], row["content"], row['title'], row['case_number'], row['gemini_ai_resp'], row['origin_article_id']
 
+        # 抓取的内容中存在case number
+        content_case_numbers = find_case_numbers(content)
 
+        # title 中存在case number
+        title_case_number = find_case_numbers(title) 
+
+        # 抓取字段中存在case number
+        case_number_list = find_case_numbers(case_number)
 
 
         ##########################################
@@ -139,14 +146,6 @@ def complete_basic_info_columns(rows, id=None):
         # case_numbers = content_case_numbers + title_case_number + case_number_list
         # case_number_arr_json = json.dumps(case_numbers, ensure_ascii=False)
         # title_case_number_json = ','.join(title_case_number)
-                # 抓取的内容中存在case number
-        content_case_numbers = find_case_numbers(content)
-
-        # title 中存在case number
-        title_case_number = find_case_numbers(title) 
-
-        # 抓取字段中存在case number
-        case_number_list = find_case_numbers(case_number)
 
         case_num_json = {'content_case_numbers': content_case_numbers, 'title_case_number': title_case_number,
                          'origin_case_number': case_number_list}
