@@ -351,6 +351,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     # 处理涉及的法院信息
     ########################################### 
     court_info = _str(timeline_info and timeline_info.get("court")) or _str(basic and basic.get("court")) or _str(row.get("extract_court"))
+    print("for debug", row.get("extract_court"))
     court_state = extract_us_state(court_info) + "州" if court_info and extract_us_state(court_info) else None
 
 
@@ -778,7 +779,8 @@ def main():
         for case_n in case_numbers.split(','):
             doc = create_sanity_doc_by_case_number(client, account_id,  database_id, case_n)
             print(doc)
-            generated_docs.append(case_n)
+            if(doc is not None):
+                generated_docs.append(case_n)
             if args.upload and doc is not None:
                 if not sanity_project or not sanity_token:
                     print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
