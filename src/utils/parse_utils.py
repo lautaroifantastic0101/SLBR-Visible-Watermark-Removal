@@ -131,13 +131,13 @@ def parse_json_text(text: str):
 # CN: CN123456789.0 / CN 202010123456.X；长数字号 90080187090004
 # EP: EP 1234567 A1；WO/PCT: WO 2020/123456；JP: JP 2020-123456
 PATENT_NUMBER_PATTERN = re.compile(
-    r"\b("
+    r"("
     r"(?:US|CN|EP|WO|PCT|JP|KR|DE|GB)\s*[\d,\.\-/]+(?:\s*[A-Z]\d?)?"
     r"|USD\d+S\d+"
     r"|(?:US\s*)?(?:D|PP|RE)\s*\d[\d,]*"
     r"|\d{1,3}(?:,\d{3})+\s*(?:\.\d+)?(?:\s*[A-Z]\d?)?"
     r"|\d{12,}"
-    r")\b",
+    r")",
     re.IGNORECASE,
 )
 
