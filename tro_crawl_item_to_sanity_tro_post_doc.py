@@ -285,6 +285,7 @@ def row_to_tro_post_doc(row: dict) -> dict:
     print('debug', isinstance(gemini, dict) and gemini.get("起诉日期"))
     
     law_date = _normalize_date(law_date_raw) if law_date_raw else None
+    print("[fordebug]原告", gemini.get("原告"))
     law_from = _str(gemini and isinstance(gemini, dict) and  gemini.get("原告")) or _str(crawl.get("lawFrom") or crawl.get("law_from"))
 
     # 判断是否为全部大写，如果不是，则转为所有单词首字母大写
