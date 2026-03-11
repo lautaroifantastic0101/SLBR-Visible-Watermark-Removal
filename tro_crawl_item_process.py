@@ -215,7 +215,7 @@ def complete_basic_info_columns(rows, id=None):
             f"is_multi_case_number = '{is_multi}', extract_case_number = '{extract_case_num_column}', case_number_arr = '{case_number_arr_json}', "
            f"title_case_arr = '{a}', content_case_arr = '{b}', origin_case_arr = '{c}', "
             f"extract_court = '{court_info}', patent_arr = '{d}', brand = '{brand}', brand_info = '{brand_info}', brand_website = '{brand_website}', violation_type = '{law_type}', "
-            f"updated_at = datetime('now')  , preprocess_updated_at=CURRENT_TIMESTAMP "
+            f" preprocess_updated_at=CURRENT_TIMESTAMP "
             f"WHERE id = {rid};"
         )
         # print(tmp_sql)
