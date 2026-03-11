@@ -617,7 +617,7 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     for row in rows:
         try:
             print(row.get('id'))
-            row_id_arr.append(row.get('id'))
+            row_id_arr.append(str(row.get('id')))
             # content_arr.append(row.get('content'))
             doc = row_to_tro_post_doc(row)
             print(doc)
