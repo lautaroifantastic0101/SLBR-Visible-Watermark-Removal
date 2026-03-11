@@ -480,7 +480,9 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
         a.brand_website,
         a.violation_type,
         a.case_brief,
+        b.ids as b_ids,
         b.crawl_item AS basic_info,
+        c.ids as c_ids,
         c.crawl_item AS timeline_info,
         d.new_url_arr,
         d.img_type_arr
@@ -511,14 +513,17 @@ def select_crawl_item_rows_by_case_number(client, account_id, database_id, case_
             )
         ) a
         LEFT OUTER JOIN (
-            SELECT  max(crawl_item) as crawl_item, extract_case_number
+            SELECT  group_concat(id, ',') as ids,
+            max(crawl_item) as crawl_item, extract_case_number
             FROM tro_crawl_item_tb
             WHERE source_type IN ('PgprintsTROItem', 'MaijiaxingqiuTROItem')
             and extract_case_number = "{case_number}"
             group by extract_case_number 
         ) b ON a.extract_case_number = b.extract_case_number
         LEFT OUTER JOIN (
-            SELECT max(crawl_item) as crawl_item, extract_case_number
+            SELECT 
+                group_concat(id, ',') as ids,
+                max(crawl_item) as crawl_item, extract_case_number
             FROM tro_crawl_item_tb
             WHERE source_type IN ('Tro61TROItem', 'MaijiaxingqiuTROItem')
                 AND is_multi_case_number = '0'
@@ -617,10 +622,16 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     for row in rows:
         try:
             print(row.get('id'))
+            b_ids = row.get('b_ids')
+            c_ids = row.get('c_ids')
             row_id_arr.append(str(row.get('id')))
             # content_arr.append(row.get('content'))
             doc = row_to_tro_post_doc(row)
-            print(doc)
+            # print(doc)
+            if b_ids:
+                doc_arr.extend(b_ids.split(','))
+            if c_ids:
+               doc_arr.extend(c_ids.split(',')) 
             doc_arr.append(doc)
         except Exception as e:
             print("caseNumber:", case_number, "error", str(e))
