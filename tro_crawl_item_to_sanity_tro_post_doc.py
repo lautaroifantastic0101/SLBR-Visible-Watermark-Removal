@@ -606,6 +606,7 @@ def merge_doc_arr(doc_arr: list) -> dict:
 def create_sanity_doc_by_case_number(client, account_id, database_id, case_number: str):
     "根据case number查询对应的rows，并且返回一个组装好的sanity doc"
     rows = select_crawl_item_rows_by_case_number(client, account_id, database_id, case_number)
+    row_id_arr = []
     doc_arr = []
     if(len(rows) > 0 ):
         print('有多文档')
@@ -616,6 +617,7 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     for row in rows:
         try:
             print(row.get('id'))
+            row_id_arr.append(row.get('id'))
             # content_arr.append(row.get('content'))
             doc = row_to_tro_post_doc(row)
             print(doc)
@@ -632,7 +634,7 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
     elif len(doc_arr) == 1:
         ret_doc = doc_arr[0]
     
-    return ret_doc
+    return ret_doc, row_id_arr
 
 def upload_sanity_doc(sanity_project, token, dataset, doc):
     """上传doc文档到sanity_project
@@ -766,7 +768,7 @@ def main():
             if extract_case_number is None:
                 continue
             # 生成doc文档 
-            doc = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
+            doc, row_id_arr = create_sanity_doc_by_case_number(client, account_id,  database_id, extract_case_number)
             if args.upload and doc is not None:
                 if not sanity_project or not sanity_token:
                     print("上传 Sanity 需要 --sanity_project_id 与 --sanity_token（或环境变量 SANITY_PROJECT_ID / SANITY_TOKEN）")
@@ -776,10 +778,19 @@ def main():
                 
                 # 上传到sanity服务器
                 upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
+
+                # 更新塞入到sanity doc的时间
+                update_time_stamp_sql = f" update tro_crawl_item_tb set insert_doc_updated_at = CURRENT_TIMESTAMP where id in {'(' + ','.join(row_id_arr) + ')'}"
+                client.d1.database.query(
+                    database_id=database_id,
+                    account_id=account_id,
+                    sql=update_time_stamp_sql,
+                )
+                
     else:
         print(f"单独处理{case_numbers}")
         for case_n in case_numbers.split(','):
-            doc = create_sanity_doc_by_case_number(client, account_id,  database_id, case_n)
+            doc, row_id_arr = create_sanity_doc_by_case_number(client, account_id,  database_id, case_n)
             print(doc)
             if(doc is not None):
                 generated_docs.append(case_n)
@@ -789,6 +800,14 @@ def main():
                     return 
                 upload_sanity_doc(sanity_project, sanity_token, sanity_dataset, doc)
                 uploaded_docs.append(case_n)
+
+                # 更新塞入到sanity doc的时间
+                update_time_stamp_sql = f" update tro_crawl_item_tb set insert_doc_updated_at = CURRENT_TIMESTAMP where id in {'(' + ','.join(row_id_arr) + ')'}"
+                client.d1.database.query(
+                    database_id=database_id,
+                    account_id=account_id,
+                    sql=update_time_stamp_sql,
+                )
         print(f"一共生成{len(generated_docs)}, {','.join(generated_docs)}")
         print(f"一共上传{len(uploaded_docs)}, {','.join(uploaded_docs)}")
 
