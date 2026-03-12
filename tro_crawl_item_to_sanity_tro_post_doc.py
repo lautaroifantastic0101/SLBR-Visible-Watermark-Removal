@@ -629,9 +629,9 @@ def create_sanity_doc_by_case_number(client, account_id, database_id, case_numbe
             doc = row_to_tro_post_doc(row)
             # print(doc)
             if b_ids:
-                doc_arr.extend(b_ids.split(','))
+                row_id_arr.extend(b_ids.split(','))
             if c_ids:
-               doc_arr.extend(c_ids.split(',')) 
+               row_id_arr.extend(c_ids.split(',')) 
             doc_arr.append(doc)
         except Exception as e:
             print("caseNumber:", case_number, "error", str(e))
