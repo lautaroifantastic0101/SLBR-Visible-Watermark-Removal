@@ -180,9 +180,9 @@ def complete_basic_info_columns(rows, id=None):
         ##########################################
         # 提取patent信息 包括 版权信息
         ##########################################
-        print("debug", content)
+        # print("debug", content)
         patent_info = extract_patent_numbers(content, True)
-        print("debug", patent_info)
+        # print("debug", patent_info)
         copyright_info = extract_copyright_numbers(content, True)
         patent_info.extend(copyright_info)
         d = json.dumps(patent_info)
@@ -258,7 +258,7 @@ def complete_case_brief_column(account_id, cf_ai_api_token, rows):
         cnt += 1
         rid, content = row["id"], row["content"]
         case_brief = summarise_case(account_id, cf_ai_api_token, content)
-        print("case brief", case_brief)
+        # print("case brief", case_brief)
         tmp_sql = (
             "UPDATE tro_crawl_item_tb SET "
             f"case_brief = '{case_brief}'  , updated_at = CURRENT_TIMESTAMP, casebrief_updated_at=CURRENT_TIMESTAMP "
