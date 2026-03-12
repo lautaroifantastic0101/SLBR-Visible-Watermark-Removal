@@ -132,7 +132,7 @@ def _normalize_date(s: str):
     # print('debug', s)
     if re.match(r"^\d{4}年\d{1,2}月\d{1,2}日$", s):
         # print('debug in match', s)
-        pattern = r"(?P<year>\d{4})年(?P<month>\d{2})月(?P<day>\d{2})日"
+        pattern = r"(?P<year>\d{4})年(?P<month>\d{1,2})月(?P<day>\d{1,2})日"
         match = re.search(pattern, s)
         data = match.groupdict()
 
