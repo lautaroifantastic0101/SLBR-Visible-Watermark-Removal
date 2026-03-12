@@ -90,9 +90,9 @@ def summarise_case(account_id, auth_token, content):
         return remove_sensitive_segments(content)
     prompt = f"请对以下内容进行概括（中文，80字以内）：  {content or ''}"
     clean_prompt = remove_sensitive_segments(prompt)
-    print(clean_prompt)
+    # print('[debug]', clean_prompt)
     result = call_llama(account_id, auth_token, MODEL, clean_prompt, system_content)
-    print('result', result)
+    # print('[debug] result', result)
     parsed = parse_ai_response(result)
 
     resp = parsed["response"]
