@@ -340,7 +340,7 @@ def main():
                     sql=batch_sql,
                 )
             except Exception as e:
-                print("sql:", "; ".join(update_sql_arr)[:200], "...")
+                print("sql:", "; ".join(update_sql_arr))
                 print(str(e))
                 # results[-1]["error"] = str(e)
             finally:
