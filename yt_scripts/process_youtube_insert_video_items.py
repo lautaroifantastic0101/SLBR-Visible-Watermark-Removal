@@ -82,8 +82,7 @@ def insert_video_tb(filename, client, database_id, account_id):
 
                 if error_msg:
                     print("Error inserting:", error_msg)
-                else:
-                    print("Inserted successfully:", resp)
+
 
 
 def extract_date_from_filename(filename: str) -> str | None:
@@ -163,15 +162,31 @@ def main():
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
     parser.add_argument("--input_file", required=True, help="输入文件路径")
 
+
     args = parser.parse_args()
 
     # 获取参数
     api_token = args.cf_d1_api_token or os.getenv('CF_D1_API_TOKEN')
     account_id = args.cf_d1_account_id or os.getenv('CF_D1_ACCOUNT_ID')
     database_id = args.cf_d1_database_id or os.getenv('CF_D1_DATABASE_ID')
+    input_file = args.input_file
 
     client = Cloudflare(api_token=api_token)
-    insert_video_tb(args.input_file, client, database_id, account_id)
+
+    # 如果传入的是目录，则遍历目录下的 .jsonl/.json 文件逐个插入
+    if os.path.isdir(input_file):
+        allowed_ext = ('.jsonl', '.json')
+        for entry in sorted(os.listdir(input_file)):
+            if entry.startswith('.'):
+                continue
+            full = os.path.join(input_file, entry)
+            if os.path.isfile(full) and full.lower().endswith(allowed_ext):
+                print(f"Processing file: {full}")
+                insert_video_tb(full, client, database_id, account_id)
+            else:
+                print(f"Skipping non-json file: {full}")
+    else:
+        insert_video_tb(input_file, client, database_id, account_id)
 
 
 if __name__ == "__main__":
