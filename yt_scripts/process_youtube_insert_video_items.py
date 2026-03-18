@@ -37,6 +37,8 @@ def insert_video_tb(filename, client, database_id, account_id):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
                 params = [keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean]
+                print(f"debug {sql}")
+
 
                 resp = client.d1.database.query(
                     database_id=database_id,
