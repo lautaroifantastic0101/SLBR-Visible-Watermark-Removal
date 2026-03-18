@@ -37,7 +37,7 @@ def insert_video_tb(filename, client, database_id, account_id):
                 INSERT INTO youtube_video_crawl_item_tb 
                 (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(keyword, crawl_pt) DO UPDATE SET
+                ON CONFLICT(keyword, crawl_pt, index_rank, link) DO UPDATE SET
                     title = excluded.title,
                     link = excluded.link,
                     channel = excluded.channel,
@@ -50,7 +50,7 @@ def insert_video_tb(filename, client, database_id, account_id):
                     updated_at = CURRENT_TIMESTAMP
                 """
                 params = [keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index]
-                print(f"debug {sql}")
+                # print(f"debug {sql}")
 
 
                 resp = client.d1.database.query(
@@ -58,7 +58,32 @@ def insert_video_tb(filename, client, database_id, account_id):
                     account_id=account_id,
                     sql=sql,
                     params=params)
-                print(resp)
+
+                # 统一的错误检测与打印：支持 dict 响应和 HTTP 响应对象
+                error_msg = None
+                # None 或 空响应
+                if resp is None:
+                    error_msg = "empty response"
+                # 字典型响应，Cloudflare SDK/HTTP API 常用字段：'success', 'errors', 'error', 'message'
+                elif isinstance(resp, dict):
+                    if resp.get('success') is False:
+                        error_msg = resp.get('errors') or resp.get('message') or str(resp)
+                    elif resp.get('errors'):
+                        error_msg = resp.get('errors')
+                    elif resp.get('error'):
+                        error_msg = resp.get('error')
+                # HTTP 响应对象（requests.Response 等）
+                elif hasattr(resp, 'status_code'):
+                    status = getattr(resp, 'status_code')
+                    if status != 200 and status != 201:
+                        # 尝试获取文本信息
+                        text = getattr(resp, 'text', None) or getattr(resp, 'content', None)
+                        error_msg = f"status {status}: {text}"
+
+                if error_msg:
+                    print("Error inserting:", error_msg)
+                else:
+                    print("Inserted successfully:", resp)
 
 
 def extract_date_from_filename(filename: str) -> str | None:
