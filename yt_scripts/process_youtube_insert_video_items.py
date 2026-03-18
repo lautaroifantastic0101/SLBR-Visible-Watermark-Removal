@@ -32,7 +32,7 @@ def insert_video_tb(filename, client, database_id, account_id):
 
                 # 构造 SQL
                 sql = """
-                INSERT OR IGNORE INTO youtube_video_crawl_item_tb 
+                INSERT INTO youtube_video_crawl_item_tb 
                 (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
