@@ -13,13 +13,14 @@ def insert_video_tb(filename, client, database_id, account_id):
         # 读取 JSONL 文件
 
     with open(filename, 'r', encoding='utf-8') as f:
+        crawl_pt = extract_date_from_filename(filename)
 
         for line in f:
             if line.strip():
                 data = json.loads(line.strip())
                 # 映射字段
                 keyword = data.get('keyword')
-                crawl_pt = data.get('crawl_pt', 'default')
+                crawl_pt =  crawl_pt
                 title = data.get('title')
                 link = data.get('link')
                 channel = data.get('channel')
