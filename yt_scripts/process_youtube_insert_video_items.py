@@ -4,7 +4,6 @@ import os
 import re
 import datetime
 from cloudflare import Cloudflare
-from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
@@ -85,7 +84,7 @@ def parse_youtube_date(date_str):
     将 YouTube 的相对时间字符串转换为 YYYY-MM-DD 格式
     支持: 'Streamed 4 months ago', '2 years ago', '2 days ago', '1 hour ago' 等
     """
-    now = datetime.now()
+    now = datetime.datetime.now()
     
     # 1. 预处理：转为小写并提取数字和单位
     # 使用正则匹配数字和单位（year, month, week, day, hour, minute）
