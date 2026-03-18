@@ -13,6 +13,7 @@ def insert_video_tb(filename, client, database_id, account_id):
         # 读取 JSONL 文件
 
     rank_index = 0
+    sqls = []
     with open(filename, 'r', encoding='utf-8') as f:
         crawl_pt = extract_date_from_filename(filename)
 
@@ -33,10 +34,10 @@ def insert_video_tb(filename, client, database_id, account_id):
                 publish_date_clean = parse_youtube_date(data.get('publish_date_clean'))
 
                 # 构造 SQL
-                sql = """
+                sql = f"""
                 INSERT INTO youtube_video_crawl_item_tb 
                 (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}')
                 ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
                     title = excluded.title,
                     link = excluded.link,
@@ -49,39 +50,39 @@ def insert_video_tb(filename, client, database_id, account_id):
                     rank_index = excluded.rank_index,
                     updated_at = CURRENT_TIMESTAMP
                 """
-                params = [keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index]
+                # params = [keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index]
                 # print(f"debug {sql}")
+                sqls.append(sql)
 
 
-                resp = client.d1.database.query(
-                    database_id=database_id,
-                    account_id=account_id,
-                    sql=sql,
-                    params=params)
+        resp = client.d1.database.query(
+            database_id=database_id,
+            account_id=account_id,
+            sql=';'.join(sqls))
 
-                # 统一的错误检测与打印：支持 dict 响应和 HTTP 响应对象
-                error_msg = None
-                # None 或 空响应
-                if resp is None:
-                    error_msg = "empty response"
-                # 字典型响应，Cloudflare SDK/HTTP API 常用字段：'success', 'errors', 'error', 'message'
-                elif isinstance(resp, dict):
-                    if resp.get('success') is False:
-                        error_msg = resp.get('errors') or resp.get('message') or str(resp)
-                    elif resp.get('errors'):
-                        error_msg = resp.get('errors')
-                    elif resp.get('error'):
-                        error_msg = resp.get('error')
-                # HTTP 响应对象（requests.Response 等）
-                elif hasattr(resp, 'status_code'):
-                    status = getattr(resp, 'status_code')
-                    if status != 200 and status != 201:
-                        # 尝试获取文本信息
-                        text = getattr(resp, 'text', None) or getattr(resp, 'content', None)
-                        error_msg = f"status {status}: {text}"
+        # 统一的错误检测与打印：支持 dict 响应和 HTTP 响应对象
+        error_msg = None
+        # None 或 空响应
+        if resp is None:
+            error_msg = "empty response"
+        # 字典型响应，Cloudflare SDK/HTTP API 常用字段：'success', 'errors', 'error', 'message'
+        elif isinstance(resp, dict):
+            if resp.get('success') is False:
+                error_msg = resp.get('errors') or resp.get('message') or str(resp)
+            elif resp.get('errors'):
+                error_msg = resp.get('errors')
+            elif resp.get('error'):
+                error_msg = resp.get('error')
+        # HTTP 响应对象（requests.Response 等）
+        elif hasattr(resp, 'status_code'):
+            status = getattr(resp, 'status_code')
+            if status != 200 and status != 201:
+                # 尝试获取文本信息
+                text = getattr(resp, 'text', None) or getattr(resp, 'content', None)
+                error_msg = f"status {status}: {text}"
 
-                if error_msg:
-                    print("Error inserting:", error_msg)
+        if error_msg:
+            print("Error inserting:", error_msg)
 
 
 
@@ -124,7 +125,7 @@ def parse_youtube_date(date_str):
     # 1. 预处理：转为小写并提取数字和单位
     # 使用正则匹配数字和单位（year, month, week, day, hour, minute）
     clean_str = date_str.lower()
-    match = re.search(r'(\d+)\s+(year|month|week|day|hour|minute)', clean_str)
+    match = re.search(r'(\d+)\s+(year|month|week|day|hour|minute|h|mo)', clean_str)
     
     if not match:
         return now.strftime('%Y-%m-%d') # 如果没匹配到，默认返回今天
@@ -135,13 +136,13 @@ def parse_youtube_date(date_str):
     # 2. 根据单位计算偏移量
     if 'year' in unit:
         delta = relativedelta(years=value)
-    elif 'month' in unit:
+    elif 'month' in unit or 'mo' in unit:
         delta = relativedelta(months=value)
     elif 'week' in unit:
         delta = relativedelta(weeks=value)
     elif 'day' in unit:
         delta = relativedelta(days=value)
-    elif 'hour' in unit:
+    elif 'hour' in unit or 'h' in unit:
         delta = relativedelta(hours=value)
     elif 'minute' in unit:
         delta = relativedelta(minutes=value)
