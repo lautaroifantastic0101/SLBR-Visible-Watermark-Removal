@@ -22,11 +22,11 @@ def insert_video_tb(filename, client, database_id, account_id):
             if line.strip():
                 data = json.loads(line.strip())
                 # 映射字段
-                keyword = data.get('keyword')
+                keyword = data.get('keyword').reaplce("'", '`')
                 crawl_pt =  crawl_pt
-                title = data.get('title')
+                title = data.get('title').replace("'", '`')
                 link = data.get('link')
-                channel = data.get('channel')
+                channel = data.get('channel').reaplce("'", '`')
                 channel_url = data.get('channel_url')
                 views_raw = data.get('views_raw')
                 views_value = data.get('views_value')
@@ -37,7 +37,7 @@ def insert_video_tb(filename, client, database_id, account_id):
                 sql = f"""
                 INSERT INTO youtube_video_crawl_item_tb 
                 (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index)
-                VALUES ("{keyword}", '{crawl_pt}', "{title}", '{link}', "{channel}", '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}')
+                VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}')
                 ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
                     title = excluded.title,
                     link = excluded.link,
