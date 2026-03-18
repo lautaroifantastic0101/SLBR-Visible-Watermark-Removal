@@ -45,6 +45,7 @@ def insert_video_tb(filename, client, database_id, account_id):
                     account_id=account_id,
                     sql=sql,
                     params=params)
+                print(resp)
 
 
 def extract_date_from_filename(filename: str) -> str | None:
