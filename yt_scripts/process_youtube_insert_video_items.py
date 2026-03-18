@@ -125,7 +125,7 @@ def parse_youtube_date(date_str):
     # 1. 预处理：转为小写并提取数字和单位
     # 使用正则匹配数字和单位（year, month, week, day, hour, minute）
     clean_str = date_str.lower()
-    match = re.search(r'(\d+)\s+(year|month|week|day|hour|minute|h|mo)', clean_str)
+    match = re.search(r'(\d+)\s{0,1}(year|month|week|day|hour|minute|h|mo)', clean_str)
     
     if not match:
         return now.strftime('%Y-%m-%d') # 如果没匹配到，默认返回今天
