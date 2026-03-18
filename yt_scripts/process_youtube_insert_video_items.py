@@ -22,11 +22,11 @@ def insert_video_tb(filename, client, database_id, account_id):
             if line.strip():
                 data = json.loads(line.strip())
                 # 映射字段
-                keyword = data.get('keyword').reaplce("'", '`')
+                keyword = data.get('keyword').replace("'", '`')
                 crawl_pt =  crawl_pt
                 title = data.get('title').replace("'", '`')
                 link = data.get('link')
-                channel = data.get('channel').reaplce("'", '`')
+                channel = data.get('channel').replace("'", '`')
                 channel_url = data.get('channel_url')
                 views_raw = data.get('views_raw')
                 views_value = data.get('views_value')
