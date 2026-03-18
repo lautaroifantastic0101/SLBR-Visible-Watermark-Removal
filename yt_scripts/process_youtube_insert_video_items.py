@@ -12,10 +12,12 @@ from cloudflare import Cloudflare
 def insert_video_tb(filename, client, database_id, account_id):
         # 读取 JSONL 文件
 
+    rank_index = 0
     with open(filename, 'r', encoding='utf-8') as f:
         crawl_pt = extract_date_from_filename(filename)
 
         for line in f:
+            rank_index += 1
             if line.strip():
                 data = json.loads(line.strip())
                 # 映射字段
@@ -33,10 +35,10 @@ def insert_video_tb(filename, client, database_id, account_id):
                 # 构造 SQL
                 sql = """
                 INSERT INTO youtube_video_crawl_item_tb 
-                (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
-                params = [keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean]
+                params = [keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index]
                 print(f"debug {sql}")
 
 
