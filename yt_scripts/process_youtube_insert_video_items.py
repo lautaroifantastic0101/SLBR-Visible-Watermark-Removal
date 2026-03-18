@@ -34,9 +34,20 @@ def insert_video_tb(filename, client, database_id, account_id):
 
                 # 构造 SQL
                 sql = """
-                INSERT OR UPDATE INTO youtube_video_crawl_item_tb 
+                INSERT INTO youtube_video_crawl_item_tb 
                 (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(keyword, crawl_pt) DO UPDATE SET
+                    title = excluded.title,
+                    link = excluded.link,
+                    channel = excluded.channel,
+                    channel_url = excluded.channel_url,
+                    views_raw = excluded.views_raw,
+                    views_value = excluded.views_value,
+                    publish_date_raw = excluded.publish_date_raw,
+                    publish_date_clean = excluded.publish_date_clean,
+                    rank_index = excluded.rank_index,
+                    updated_at = CURRENT_TIMESTAMP
                 """
                 params = [keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index]
                 print(f"debug {sql}")
