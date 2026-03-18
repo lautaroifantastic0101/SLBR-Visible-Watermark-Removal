@@ -4,7 +4,8 @@ import os
 import re
 import datetime
 from cloudflare import Cloudflare
-
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 
 
@@ -30,11 +31,11 @@ def insert_video_tb(filename, client, database_id, account_id):
                 views_raw = data.get('views_raw')
                 views_value = data.get('views_value')
                 publish_date_raw = data.get('publish_date_raw')
-                publish_date_clean = data.get('publish_date_clean')
+                publish_date_clean = parse_youtube_date(data.get('publish_date_clean'))
 
                 # 构造 SQL
                 sql = """
-                INSERT INTO youtube_video_crawl_item_tb 
+                INSERT OR UPDATE INTO youtube_video_crawl_item_tb 
                 (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
@@ -77,6 +78,46 @@ def extract_date_from_filename(filename: str) -> str | None:
         return dt.strftime("%Y-%m-%d")
     except ValueError:
         return None
+
+
+def parse_youtube_date(date_str):
+    """
+    将 YouTube 的相对时间字符串转换为 YYYY-MM-DD 格式
+    支持: 'Streamed 4 months ago', '2 years ago', '2 days ago', '1 hour ago' 等
+    """
+    now = datetime.now()
+    
+    # 1. 预处理：转为小写并提取数字和单位
+    # 使用正则匹配数字和单位（year, month, week, day, hour, minute）
+    clean_str = date_str.lower()
+    match = re.search(r'(\d+)\s+(year|month|week|day|hour|minute)', clean_str)
+    
+    if not match:
+        return now.strftime('%Y-%m-%d') # 如果没匹配到，默认返回今天
+    
+    value = int(match.group(1))
+    unit = match.group(2)
+    
+    # 2. 根据单位计算偏移量
+    if 'year' in unit:
+        delta = relativedelta(years=value)
+    elif 'month' in unit:
+        delta = relativedelta(months=value)
+    elif 'week' in unit:
+        delta = relativedelta(weeks=value)
+    elif 'day' in unit:
+        delta = relativedelta(days=value)
+    elif 'hour' in unit:
+        delta = relativedelta(hours=value)
+    elif 'minute' in unit:
+        delta = relativedelta(minutes=value)
+    else:
+        delta = relativedelta()
+
+    # 3. 计算真实日期
+    target_date = now - delta
+    return target_date.strftime('%Y-%m-%d')
+
 
 
 def main():
