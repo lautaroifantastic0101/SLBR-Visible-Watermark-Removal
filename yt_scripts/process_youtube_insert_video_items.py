@@ -25,8 +25,9 @@ def insert_video_tb(filename, client, database_id, account_id):
                 crawl_pt =  crawl_pt
                 title = data.get('title')
                 if title is None:
-                    print(f'处理该行数据出错：{line}')
-                    continue
+                    print(f'无法提取该行数据的title：{line}')
+                    title = ""
+                    # continue
                 else:
                     title = title.replace("'", '`')
                 channel = data.get('channel').replace("'", '`')
