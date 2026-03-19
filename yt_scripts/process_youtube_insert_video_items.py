@@ -23,7 +23,12 @@ def insert_video_tb(filename, client, database_id, account_id):
                 # 映射字段
                 keyword = data.get('keyword').replace("'", '`')
                 crawl_pt =  crawl_pt
-                title = data.get('title').replace("'", '`')
+                title = data.get('title')
+                if title is None:
+                    print(f'处理该行数据出错：{line}')
+                    continue
+                else:
+                    title = title.replace("'", '`')
                 channel = data.get('channel').replace("'", '`')
                 link = data.get('link')
 
