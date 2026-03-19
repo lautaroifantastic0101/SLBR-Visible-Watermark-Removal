@@ -10,8 +10,7 @@ from dateutil.relativedelta import relativedelta
 
 
 def insert_video_tb(filename, client, database_id, account_id):
-        # 读取 JSONL 文件
-
+    # 读取 JSONL 文件
     rank_index = 0
     sqls = []
     with open(filename, 'r', encoding='utf-8') as f:
@@ -25,34 +24,58 @@ def insert_video_tb(filename, client, database_id, account_id):
                 keyword = data.get('keyword').replace("'", '`')
                 crawl_pt =  crawl_pt
                 title = data.get('title').replace("'", '`')
-                link = data.get('link')
                 channel = data.get('channel').replace("'", '`')
-                channel_url = data.get('channel_url')
-                views_raw = data.get('views_raw')
-                views_value = data.get('views_value')
-                publish_date_raw = data.get('publish_date_raw')
-                publish_date_clean = parse_youtube_date(data.get('publish_date_clean'))
+                link = data.get('link')
 
-                # 构造 SQL
-                sql = f"""
-                INSERT INTO youtube_video_crawl_item_tb 
-                (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index)
-                VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}')
-                ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
-                    title = excluded.title,
-                    link = excluded.link,
-                    channel = excluded.channel,
-                    channel_url = excluded.channel_url,
-                    views_raw = excluded.views_raw,
-                    views_value = excluded.views_value,
-                    publish_date_raw = excluded.publish_date_raw,
-                    publish_date_clean = excluded.publish_date_clean,
-                    rank_index = excluded.rank_index,
-                    updated_at = CURRENT_TIMESTAMP
-                """
-                # params = [keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index]
-                # print(f"debug {sql}")
-                sqls.append(sql)
+                platform = data.get('platform')
+
+                if platform == 'youtube':
+                    channel_url = data.get('channel_url')
+                    views_raw = data.get('views_raw')
+                    views_value = data.get('views_value')
+                    publish_date_raw = data.get('publish_date_raw')
+                    publish_date_clean = parse_youtube_date(data.get('publish_date_clean'))
+                    # 构造 SQL
+                    sql = f"""
+                    INSERT INTO youtube_video_crawl_item_tb 
+                    (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index, platform)
+                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}, {platform}')
+                    ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
+                        title = excluded.title,
+                        link = excluded.link,
+                        channel = excluded.channel,
+                        channel_url = excluded.channel_url,
+                        views_raw = excluded.views_raw,
+                        views_value = excluded.views_value,
+                        publish_date_raw = excluded.publish_date_raw,
+                        publish_date_clean = excluded.publish_date_clean,
+                        rank_index = excluded.rank_index,
+                        platform = excluded.platform,  
+                        updated_at = CURRENT_TIMESTAMP
+                    """
+
+                    sqls.append(sql)
+                elif platform == 'douyin':
+                    publish_date_clean = unix_to_date(data.get('publish_date_clean'))
+                    digg_count = data.get("digg_count")
+                    sql = f"""
+                    INSERT INTO youtube_video_crawl_item_tb 
+                    (keyword, crawl_pt, title, link, channel, publish_date_clean, rank_index, digg_count, platform)
+                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{publish_date_clean}', '{rank_index}', '{digg_count}', '{platform}')
+                    ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
+                        title = excluded.title,
+                        link = excluded.link,
+                        channel = excluded.channel,
+                        publish_date_clean = excluded.publish_date_clean,
+                        rank_index = excluded.rank_index,
+                        digg_count = excluded.digg_count,
+                        platform = excluded.platform,
+                        updated_at = CURRENT_TIMESTAMP
+                    """
+
+                    sqls.append(sql)
+
+                    
 
 
         resp = client.d1.database.query(
@@ -83,6 +106,19 @@ def insert_video_tb(filename, client, database_id, account_id):
 
         if error_msg:
             print("Error inserting:", error_msg)
+
+
+
+
+def unix_to_date(unix_time):
+    """
+    将 Unix 时间戳（秒）转换为 指定格式的日期字符串
+    """
+    # 1. 将秒转换为 datetime 对象
+    dt_object = datetime.datetime.fromtimestamp(unix_time)
+    
+    # 2. 格式化为 YYYY-MM-DD
+    return dt_object.strftime('%Y-%m-%d')
 
 
 
