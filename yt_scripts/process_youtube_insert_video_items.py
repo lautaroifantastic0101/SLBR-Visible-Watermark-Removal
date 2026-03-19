@@ -62,7 +62,11 @@ def insert_video_tb(filename, client, database_id, account_id):
 
                     sqls.append(sql)
                 elif platform == 'douyin':
-                    publish_date_clean = unix_to_date(data.get('publish_date_clean'))
+                    publish_date_clean = data.get('publish_date_clean')
+                    if publish_date_clean is not None:
+                        publish_date_clean = unix_to_date(publish_date_clean)
+                    else:
+                        publish_date_clean = '1970-01-01'
                     digg_count = data.get("digg_count")
                     sql = f"""
                     INSERT INTO youtube_video_crawl_item_tb 
