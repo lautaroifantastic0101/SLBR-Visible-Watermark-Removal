@@ -68,10 +68,14 @@ def insert_video_tb(filename, client, database_id, account_id):
                     else:
                         publish_date_clean = '1970-01-01'
                     digg_count = data.get("digg_count")
+                    all_video_urls = data.get("all_video_urls")
+                    if isinstance(all_video_urls, list):
+                        all_video_urls = ','.join(all_video_urls)
+                    play_url = data.get("play_url")
                     sql = f"""
                     INSERT INTO youtube_video_crawl_item_tb 
-                    (keyword, crawl_pt, title, link, channel, publish_date_clean, rank_index, digg_count, platform)
-                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{publish_date_clean}', '{rank_index}', '{digg_count}', '{platform}')
+                    (keyword, crawl_pt, title, link, channel, publish_date_clean, rank_index, digg_count, platform, all_video_urls, play_url)
+                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{publish_date_clean}', '{rank_index}', '{digg_count}', '{platform}', '{all_video_urls}', '{play_url}')
                     ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
                         title = excluded.title,
                         link = excluded.link,
@@ -80,6 +84,8 @@ def insert_video_tb(filename, client, database_id, account_id):
                         rank_index = excluded.rank_index,
                         digg_count = excluded.digg_count,
                         platform = excluded.platform,
+                        all_video_urls = excluded.all_video_urls,
+                        play_url = excluded.play_url,
                         updated_at = CURRENT_TIMESTAMP
                     """
 
