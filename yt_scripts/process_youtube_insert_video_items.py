@@ -6,7 +6,49 @@ import datetime
 from cloudflare import Cloudflare
 from dateutil.relativedelta import relativedelta
 
+def insert_channel_tb(filename, client, database_id, account_id):
+    """
+    读取 JSONL 文件并将频道数据插入到 youtube_channel_tb 数据库。
+    """
+    sqls = []
+    crawl_pt = extract_date_from_filename(filename)
 
+    with open(filename, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.strip():
+                data = json.loads(line.strip())
+                channel_name = data.get('channel_name', '').replace("'", "`")
+                channel_url = data.get('channel_url', '').replace("'", "`")
+                description = data.get('description', '').replace("'", "`")
+                subscribers = data.get('subscribers', 0)
+                video_count = data.get('video_count', 0)
+
+                sql = f"""
+                INSERT INTO youtube_channel_tb 
+                (channel_name, channel_url, description, subscribers, video_count, crawl_pt)
+                VALUES ('{channel_name}', '{channel_url}', '{description}', {subscribers}, {video_count}, '{crawl_pt}')
+                ON CONFLICT(channel_url, crawl_pt) DO UPDATE SET
+                    description = excluded.description,
+                    subscribers = excluded.subscribers,
+                    video_count = excluded.video_count,
+                    updated_at = CURRENT_TIMESTAMP
+                """
+                sqls.append(sql)
+
+    # 执行批量插入
+    resp = client.d1.database.query(
+        database_id=database_id,
+        account_id=account_id,
+        sql=';'.join(sqls)
+    )
+
+    # 错误处理
+    if resp is None:
+        print("Error: Empty response from database.")
+    elif isinstance(resp, dict) and not resp.get('success', True):
+        print("Error inserting channels:", resp.get('errors', resp))
+    else:
+        print("Channels inserted/updated successfully.")
 
 
 def insert_video_tb(filename, client, database_id, account_id):
@@ -213,6 +255,8 @@ def main():
     parser.add_argument("--cf_ai_api_token", required=False, help="Cloudflare AI API Token，可通过环境变量 CF_D1_API_TOKEN 传递")
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可通过环境变量 CF_D1_ACCOUNT_ID 传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
+
+    parser.add_argument("--file_type", required=False, help="video  channel")
     parser.add_argument("--input_file", required=True, help="输入文件路径")
 
 
@@ -222,24 +266,28 @@ def main():
     api_token = args.cf_d1_api_token or os.getenv('CF_D1_API_TOKEN')
     account_id = args.cf_d1_account_id or os.getenv('CF_D1_ACCOUNT_ID')
     database_id = args.cf_d1_database_id or os.getenv('CF_D1_DATABASE_ID')
+    file_type = args.file_type
     input_file = args.input_file
 
     client = Cloudflare(api_token=api_token)
-
-    # 如果传入的是目录，则遍历目录下的 .jsonl/.json 文件逐个插入
-    if os.path.isdir(input_file):
-        allowed_ext = ('.jsonl', '.json')
-        for entry in sorted(os.listdir(input_file)):
-            if entry.startswith('.'):
-                continue
-            full = os.path.join(input_file, entry)
-            if os.path.isfile(full) and full.lower().endswith(allowed_ext):
-                print(f"Processing file: {full}")
-                insert_video_tb(full, client, database_id, account_id)
-            else:
-                print(f"Skipping non-json file: {full}")
-    else:
-        insert_video_tb(input_file, client, database_id, account_id)
+    
+    if file_type == 'video':
+        # 如果传入的是目录，则遍历目录下的 .jsonl/.json 文件逐个插入
+        if os.path.isdir(input_file):
+            allowed_ext = ('.jsonl', '.json')
+            for entry in sorted(os.listdir(input_file)):
+                if entry.startswith('.'):
+                    continue
+                full = os.path.join(input_file, entry)
+                if os.path.isfile(full) and full.lower().endswith(allowed_ext):
+                    print(f"Processing file: {full}")
+                    insert_video_tb(full, client, database_id, account_id)
+                else:
+                    print(f"Skipping non-json file: {full}")
+        else:
+            insert_video_tb(input_file, client, database_id, account_id)
+    elif file_type == 'channel':
+        insert_channel_tb(input_file, client, database_id, account_id)
 
 
 if __name__ == "__main__":
