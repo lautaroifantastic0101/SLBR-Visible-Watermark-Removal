@@ -253,7 +253,6 @@ def parse_youtube_date(date_str):
 
 
 
-def get_video_url(filename, client, database_id, account_id):
 
 
 
