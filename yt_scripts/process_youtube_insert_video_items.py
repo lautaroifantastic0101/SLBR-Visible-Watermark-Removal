@@ -83,13 +83,11 @@ def insert_video_tb(filename, client, database_id, account_id):
                     views_value = data.get('views_value')
                     publish_date_raw = data.get('publish_date_raw')
                     publish_date_clean = parse_youtube_date(data.get('publish_date_clean'))
-                    video_ratio = data.get('video_ratio')
-                    video_duration = data.get('video_duration')
                     # 构造 SQL
                     sql = f"""
                     INSERT INTO youtube_video_crawl_item_tb 
-                    (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index, platform, video_ratio, video_duration)
-                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}', '{platform}', '{video_ratio}', '{video_duration}')
+                    (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index, platform)
+                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}', '{platform}')
                     ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
                         title = excluded.title,
                         link = excluded.link,
@@ -101,13 +99,13 @@ def insert_video_tb(filename, client, database_id, account_id):
                         publish_date_clean = excluded.publish_date_clean,
                         rank_index = excluded.rank_index,
                         platform = excluded.platform,
-                        video_ratio = excluded.video_ratio,
-                        video_duration = excluded.video_duration,
                         updated_at = CURRENT_TIMESTAMP
                     """
 
                     sqls.append(sql)
                 elif platform == 'douyin':
+                    video_ratio = data.get('video_ratio')
+                    video_duration = data.get('video_duration')
                     publish_date_clean = data.get('publish_date_clean')
                     if publish_date_clean is not None:
                         publish_date_clean = unix_to_date(publish_date_clean)
@@ -120,8 +118,8 @@ def insert_video_tb(filename, client, database_id, account_id):
                     play_url = data.get("play_url")
                     sql = f"""
                     INSERT INTO youtube_video_crawl_item_tb 
-                    (keyword, crawl_pt, title, link, channel, publish_date_clean, rank_index, digg_count, platform, all_video_urls, play_url)
-                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{publish_date_clean}', '{rank_index}', '{digg_count}', '{platform}', '{all_video_urls}', '{play_url}')
+                    (keyword, crawl_pt, title, link, channel, publish_date_clean, rank_index, digg_count, platform, all_video_urls, play_url, video_ratio, video_duration)
+                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{publish_date_clean}', '{rank_index}', '{digg_count}', '{platform}', '{all_video_urls}', '{play_url}', '{video_ratio}', '{video_duration}')
                     ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
                         title = excluded.title,
                         link = excluded.link,
@@ -132,6 +130,8 @@ def insert_video_tb(filename, client, database_id, account_id):
                         platform = excluded.platform,
                         all_video_urls = excluded.all_video_urls,
                         play_url = excluded.play_url,
+                       video_ratio = excluded.video_ratio,
+                      video_duration = excluded.video_duration,
                         updated_at = CURRENT_TIMESTAMP
                     """
 
