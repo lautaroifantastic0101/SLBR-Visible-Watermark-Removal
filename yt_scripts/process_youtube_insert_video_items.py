@@ -83,11 +83,13 @@ def insert_video_tb(filename, client, database_id, account_id):
                     views_value = data.get('views_value')
                     publish_date_raw = data.get('publish_date_raw')
                     publish_date_clean = parse_youtube_date(data.get('publish_date_clean'))
+                    video_ratio = data.get('video_ratio')
+                    video_duration = data.get('video_duration')
                     # 构造 SQL
                     sql = f"""
                     INSERT INTO youtube_video_crawl_item_tb 
-                    (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index, platform)
-                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}, {platform}')
+                    (keyword, crawl_pt, title, link, channel, channel_url, views_raw, views_value, publish_date_raw, publish_date_clean, rank_index, platform, video_ratio, video_duration)
+                    VALUES ('{keyword}', '{crawl_pt}', '{title}', '{link}', '{channel}', '{channel_url}', '{views_raw}', '{views_value}', '{publish_date_raw}', '{publish_date_clean}', '{rank_index}', '{platform}', '{video_ratio}', '{video_duration}')
                     ON CONFLICT(keyword, crawl_pt, rank_index, link) DO UPDATE SET
                         title = excluded.title,
                         link = excluded.link,
@@ -98,7 +100,9 @@ def insert_video_tb(filename, client, database_id, account_id):
                         publish_date_raw = excluded.publish_date_raw,
                         publish_date_clean = excluded.publish_date_clean,
                         rank_index = excluded.rank_index,
-                        platform = excluded.platform,  
+                        platform = excluded.platform,
+                        video_ratio = excluded.video_ratio,
+                        video_duration = excluded.video_duration,
                         updated_at = CURRENT_TIMESTAMP
                     """
 
@@ -249,6 +253,10 @@ def parse_youtube_date(date_str):
 
 
 
+def get_video_url(filename, client, database_id, account_id):
+
+
+
 def main():
     parser = argparse.ArgumentParser(description="将爬虫文件塞入到数据库中")
     parser.add_argument("--cf_d1_api_token", required=False, help="Cloudflare D1 API Token，可通过环境变量 CF_D1_API_TOKEN 传递")
@@ -256,8 +264,9 @@ def main():
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可通过环境变量 CF_D1_ACCOUNT_ID 传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
 
-    parser.add_argument("--file_type", required=False, help="video  channel")
+    parser.add_argument("--file_type", required=False, help="video 插入视频信息-搜索结果  channel, channel信息, download  通过url下载视频")
     parser.add_argument("--input_file", required=True, help="输入文件路径")
+    parser.add_argument("--video_download", help="视频下载路径")
 
 
     args = parser.parse_args()
@@ -288,6 +297,10 @@ def main():
             insert_video_tb(input_file, client, database_id, account_id)
     elif file_type == 'channel':
         insert_channel_tb(input_file, client, database_id, account_id)
+    elif file_type == 'download_imgs':
+        # 将对应的图片下载
+        pass
+
 
 
 if __name__ == "__main__":
