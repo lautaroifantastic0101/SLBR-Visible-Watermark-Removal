@@ -1,0 +1,117 @@
+from moviepy.editor import VideoFileClip, ColorClip, CompositeVideoClip, clips_array, vfx
+import numpy as np
+import easyocr
+import cv2
+import re
+import time
+import math
+
+
+def overlay_text_area(video_path, output_path, boxes, mask_video_path):
+    """
+    增加：一个overlay mask
+    boxes: OCR 返回的坐标列表 [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+    """
+    video = VideoFileClip(video_path)
+
+    print("video duration", video.duration)
+    # 提取坐标的最大最小值形成矩形
+    # box[0]是左上角，box[2]是右下角
+    overlays = []
+    for box in boxes:
+        print(box)
+        xmin, ymin = box[0]
+        xmax, ymax = box[2]
+        w, h = xmax - xmin, ymax - ymin
+        print(xmin, ymin, w, h)
+        # 使用视频短片作为mask
+        target_w = w
+        # 1. 加载并调整高度、时长(需要先调整时间长度)
+        clip = VideoFileClip(mask_video_path).resize(height=int(h)).fx(vfx.loop, duration=video.duration)
+
+        # 2. 计算重复次数
+        # 假设目标宽度为 target_w
+        repeat_count = math.ceil(target_w / clip.w)
+
+        # 3. 横向拼接
+        # clips_array 接收一个二维列表，[[clip, clip, clip]] 表示横向排列
+        tiled_clip = clips_array([[clip] * (repeat_count+1)])
+
+        # 4. 裁切掉超出 target_w 的部分
+        # final_clip = tiled_clip.crop(x1=0, y1=0, x2=target_w, y2=int(h))
+
+        # 5. 设置后续拼接的时候，在主视频的位置；以及设置开始的时间
+        looped_clip_by_duration = tiled_clip\
+        .set_start(0)\
+        .set_position((int(xmin), int(ymin)))
+        
+        # 5. 使其在时间上循环，直到达到目标总长度
+        # duration 参数指定了循环后的最终总长度
+        # final_clip = final_clip.fx(vfx.loop, duration=video.duration).set_start(0).set_position((int(xmin), int(ymin)))
+        overlays.append(looped_clip_by_duration)
+    # 合成视频
+    final_video = CompositeVideoClip([video] + overlays)
+    final_video.write_videofile(output_path, codec="libx264")
+
+
+import whisper
+import re
+from moviepy.editor import VideoFileClip
+import os
+
+def check_chinese_in_video(video_path, model_size="base"):
+    """
+    1. 提取视频音频
+    2. 使用 Whisper 识别语音
+    3. 利用正则匹配中文
+    """
+    audio_path = "temp_audio.wav"
+    
+    # --- 步骤 1: 提炼音频 ---
+    print("正在提取音频...")
+    video = VideoFileClip(video_path)
+    video.audio.write_audiofile(audio_path, codec="pcm_s16le", logger=None)
+    
+    # --- 步骤 2: 语音识别 ---
+    print(f"正在加载 Whisper 模型 ({model_size})...")
+    model = whisper.load_model(model_size)
+    result = model.transcribe(audio_path)
+    text = result["text"]
+    
+    # 清理临时文件
+    video.close()
+    os.remove(audio_path)
+    
+    # --- 步骤 3: 中文检测 ---
+    # 匹配中文字符的正则表达式：[\u4e00-\u9fa5]
+    has_chinese = bool(re.search(r'[\u4e00-\u9fa5]', text))
+    
+    return {
+        "has_chinese": has_chinese,
+        "transcribed_text": text
+    }
+
+
+
+final_video.write_videofile(
+    "shorts_output.mp4", 
+    fps=30, 
+    codec="libx264", 
+    audio_codec="aac",
+    bitrate="10000k", # 确保画质清晰
+    ffmpeg_params=["-pix_fmt", "yuv420p"] # 提高移动端播放兼容性
+)
+
+
+
+# 使用示例
+result = check_chinese_in_video("my_game_video.mp4")
+print(f"检测结果: {'包含中文' if result['has_chinese'] else '不包含中文'}")
+print(f"识别出的内容: {result['transcribed_text'][:100]}...")
+
+
+
+boxes = [[[np.int32(209), np.int32(285)], [np.int32(867), np.int32(285)], [np.int32(867), np.int32(345)], [np.int32(209), np.int32(345)]], [
+    [np.int32(310), np.int32(368)], [np.int32(782), np.int32(368)], [np.int32(782), np.int32(428)], [np.int32(310), np.int32(428)]]]  # 假设这是 OCR 拿到的坐标
+overlay_text_area("/content/test1708.mp4", "output6.mp4", boxes,
+                  "/Users/wushan/models/SLBR-Visible-Watermark-Removal/material/DancingBug.mp4")
