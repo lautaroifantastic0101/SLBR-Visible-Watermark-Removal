@@ -13,6 +13,7 @@ def query_by_links(client, database_id, account_id, links):
     """
     try:
         # 构造 SQL 查询
+        
         placeholders = ', '.join([f"'{link}'" for link in links])
         query = f"""
         SELECT * FROM youtube_video_crawl_item_tb WHERE link IN ({placeholders})

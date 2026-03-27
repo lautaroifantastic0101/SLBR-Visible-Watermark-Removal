@@ -319,7 +319,7 @@ def main():
         if video_path is None or link_ids is None:
             print('video_path links不能为空 ')
             return 
-        items = query_by_links(client, database_id, account_id, link_ids)
+        items = query_by_links(client, database_id, account_id, link_ids.split(','))
         for item in items:
             all_video_urls = item['all_video_urls']
             # if all_video_urls:
