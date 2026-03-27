@@ -14,6 +14,8 @@ from download_utils import download_douyin_video
 from parse_imgs_zip_upload import upload_file
 from video_utils import capture_video_screenshot
 
+sys.path.append('../')
+
 
 
 def insert_channel_tb(filename, client, database_id, account_id):
