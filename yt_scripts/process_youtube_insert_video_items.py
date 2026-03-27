@@ -6,6 +6,8 @@ import datetime
 from cloudflare import Cloudflare
 from dateutil.relativedelta import relativedelta
 
+from yt_scripts.db_utils import query_by_links
+
 def insert_channel_tb(filename, client, database_id, account_id):
     """
     读取 JSONL 文件并将频道数据插入到 youtube_channel_tb 数据库。
@@ -263,9 +265,10 @@ def main():
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可通过环境变量 CF_D1_ACCOUNT_ID 传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
 
-    parser.add_argument("--file_type", required=False, help="video 插入视频信息-搜索结果  channel, channel信息, download  通过url下载视频")
+    parser.add_argument("--file_type", required=False, help="video 插入视频信息-搜索结果  channel, channel信息, download  通过url下载视频, ")
     parser.add_argument("--input_file", required=True, help="输入文件路径")
-    parser.add_argument("--video_download", help="视频下载路径")
+    parser.add_argument("--video_path", help="视频下载路径")
+    parser.add_argument("--link_ids", help="需要处理的linkid列表，使用逗号分隔")
 
 
     args = parser.parse_args()
@@ -276,6 +279,8 @@ def main():
     database_id = args.cf_d1_database_id or os.getenv('CF_D1_DATABASE_ID')
     file_type = args.file_type
     input_file = args.input_file
+    video_path = args.video_path
+    link_ids = args.link_ids
 
     client = Cloudflare(api_token=api_token)
     
@@ -294,11 +299,18 @@ def main():
                     print(f"Skipping non-json file: {full}")
         else:
             insert_video_tb(input_file, client, database_id, account_id)
-    elif file_type == 'channel':
+    elif file_type == 'channel': # 将channel信息塞入到数据库中
         insert_channel_tb(input_file, client, database_id, account_id)
-    elif file_type == 'download_imgs':
+    elif file_type == 'download': # 下载视频信息
         # 将对应的图片下载
-        pass
+        if video_path is None or link_ids is None:
+            print('video_path links不能为空 ')
+            return 
+        items = query_by_links(client, database_id, account_id, link_ids)
+        for item in items:
+            all_video_urls = item.get('all_video_urls')
+            print(all_video_urls)
+        
 
 
 

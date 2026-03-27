@@ -5,6 +5,13 @@ import cv2
 import re
 import time
 import math
+import os
+
+import whisper
+
+
+
+
 
 
 def overlay_text_area(video_path, output_path, boxes, mask_video_path):
@@ -54,10 +61,7 @@ def overlay_text_area(video_path, output_path, boxes, mask_video_path):
     final_video.write_videofile(output_path, codec="libx264")
 
 
-import whisper
-import re
-from moviepy.editor import VideoFileClip
-import os
+
 
 def check_chinese_in_video(video_path, model_size="base"):
     """
@@ -93,25 +97,70 @@ def check_chinese_in_video(video_path, model_size="base"):
 
 
 
-final_video.write_videofile(
-    "shorts_output.mp4", 
-    fps=30, 
-    codec="libx264", 
-    audio_codec="aac",
-    bitrate="10000k", # 确保画质清晰
-    ffmpeg_params=["-pix_fmt", "yuv420p"] # 提高移动端播放兼容性
-)
+
+def is_chinese(text):
+    """通过 Unicode 范围检查字符串中是否包含汉字"""
+    return re.search(r'[\u4e00-\u9fff]', text) is not None
+
+def scan_video_for_chinese(video_path, sample_rate=1):
+    """
+    扫描视频是否存在中文字符
+    :param sample_rate: 每秒扫描的帧数，默认1帧/秒
+    """
+    # 初始化 EasyOCR，指定语言为中文简体和英文
+    reader = easyocr.Reader(['ch_sim', 'en'])
+
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f'fps: {fps}')
+
+    interval = int(fps / sample_rate) if fps > 0 else 1
+
+    frame_count = 0
+    total_ocr_time = 0
+    scan_count = 0
+    print(f"开始扫描视频: {video_path}")
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if frame_count % interval == 0:
+            # 执行识别
+            start_ocr = time.perf_counter()
+
+            # 执行识别 (注意：如果你只需要检测是否存在，可以用 detail=0 提升一点速度)
+            results = reader.readtext(frame)
+
+            end_ocr = time.perf_counter()
+            duration = end_ocr - start_ocr
+            total_ocr_time += duration
+            scan_count += 1
+            print(f"帧 {frame_count} | 耗时: {duration:.4f}s | 结果: {results if results else '无文字'}")
+
+            for text in results:
+                print(text)
+                if is_chinese(text[1]):
+                    print(f"在 {frame_count/fps:.2f} 秒处发现中文: '{text[1]}'")
+                    return True # 发现中文即可停止
+
+        frame_count += 1
+
+    cap.release()
+    return False
 
 
 
-# 使用示例
-result = check_chinese_in_video("my_game_video.mp4")
-print(f"检测结果: {'包含中文' if result['has_chinese'] else '不包含中文'}")
-print(f"识别出的内容: {result['transcribed_text'][:100]}...")
+
+# # 使用示例
+# result = check_chinese_in_video("my_game_video.mp4")
+# print(f"检测结果: {'包含中文' if result['has_chinese'] else '不包含中文'}")
+# print(f"识别出的内容: {result['transcribed_text'][:100]}...")
 
 
 
-boxes = [[[np.int32(209), np.int32(285)], [np.int32(867), np.int32(285)], [np.int32(867), np.int32(345)], [np.int32(209), np.int32(345)]], [
-    [np.int32(310), np.int32(368)], [np.int32(782), np.int32(368)], [np.int32(782), np.int32(428)], [np.int32(310), np.int32(428)]]]  # 假设这是 OCR 拿到的坐标
-overlay_text_area("/content/test1708.mp4", "output6.mp4", boxes,
-                  "/Users/wushan/models/SLBR-Visible-Watermark-Removal/material/DancingBug.mp4")
+# boxes = [[[np.int32(209), np.int32(285)], [np.int32(867), np.int32(285)], [np.int32(867), np.int32(345)], [np.int32(209), np.int32(345)]], [
+#     [np.int32(310), np.int32(368)], [np.int32(782), np.int32(368)], [np.int32(782), np.int32(428)], [np.int32(310), np.int32(428)]]]  # 假设这是 OCR 拿到的坐标
+# overlay_text_area("/content/test1708.mp4", "output6.mp4", boxes,
+#                   "/Users/wushan/models/SLBR-Visible-Watermark-Removal/material/DancingBug.mp4")
