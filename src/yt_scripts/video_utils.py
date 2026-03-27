@@ -1,3 +1,5 @@
+import json
+
 from moviepy.editor import VideoFileClip, ColorClip, CompositeVideoClip, clips_array, vfx
 import numpy as np
 import easyocr
@@ -253,6 +255,7 @@ def create_shorts_with_borders(content_source, output_path, frame=None):
     # 3. 根据 frame 信息裁剪
     print('frame')
     print(frame)
+    frame = json.loads(frame)
     if frame and isinstance(frame, list) and len(frame) > 0:
         region = frame[0]
         print('region', region)
@@ -271,7 +274,7 @@ def create_shorts_with_borders(content_source, output_path, frame=None):
         else:
             print("frame 字段不完整，跳过裁剪")
     
-    # main_content.write_videofile(output_path, fps=30, codec="libx264")
+    main_content.write_videofile(output_path, fps=30, codec="libx264")
 
     # # 4. 创建背景
     # bg_clip = ColorClip(size=(W, H), color=(0, 0, 0)).set_duration(main_content.duration)
