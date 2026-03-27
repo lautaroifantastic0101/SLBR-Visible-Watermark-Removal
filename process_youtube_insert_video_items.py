@@ -365,21 +365,17 @@ def main():
                     return 
                 print(f"下载成功: {store_path} (link={link}, id={id})")
                 tmp_img_path = os.path.join('/content/tmp/', f'{link}.jpg')
-                if capture_video_screenshot(store_path, tmp_img_path):
-                    r2key = f'/video_screenshot/{link}.jpg'
-                    upload_file(client=s3_client, bucketname=BUCKET_NAME, local_file_path=tmp_img_path, upload_r2_key=r2key)
-                    updated = update_video_path(client, database_id, account_id, id, store_path, tmp_img_path)
-
-                else:
-                    print('截图失败')
-
-                    
+                capture_ret = capture_video_screenshot(store_path, tmp_img_path)
+                print(capture_ret)
+                r2key = f'/video_screenshot/{link}.jpg'
+                upload_file(client=s3_client, bucketname=BUCKET_NAME, local_file_path=tmp_img_path, upload_r2_key=r2key)
+                updated = update_video_path(client, database_id, account_id, id, store_path, r2key)
 
                 # 随机暂停，降低高频下载风险
                 wait_seconds = random.uniform(2.0, 5.0)
                 print(f"sleeping for {wait_seconds:.2f}s")
                 time.sleep(wait_seconds)
-                print(f"All video URLs: {all_video_urls}")
+                # print(f"All video URLs: {all_video_urls}")
             else:
                 print("No video URLs found for this item.")
         
