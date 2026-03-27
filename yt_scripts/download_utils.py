@@ -20,13 +20,15 @@ def download_douyin_video(video_url, title, save_dir="./"):
 
     try:
         # stream=True 适合下载大文件，避免内存溢出
-        with requests.get(video_url, headers=headers, stream=True, timeout=30) as r:
+        with requests.get(video_url, headers=headers, stream=True, timeout=60) as r:
             r.raise_for_status()
             with open(save_path, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
         print(f"下载成功: {filename}")
-        return True
+        return save_path
+        # return True
     except Exception as e:
         print(f"下载失败 {title}: {e}")
-        return False
+        return None
+        # return False

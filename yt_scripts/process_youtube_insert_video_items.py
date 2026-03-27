@@ -6,9 +6,10 @@ import datetime
 from cloudflare import Cloudflare
 from dateutil.relativedelta import relativedelta
 import sys
-
+import time, random
 
 from db_utils import query_by_links
+from download_utils import download_douyin_video
 
 def insert_channel_tb(filename, client, database_id, account_id):
     """
@@ -322,11 +323,26 @@ def main():
         items = query_by_links(client, database_id, account_id, link_ids.split(','))
         for item in items:
             all_video_urls = item['all_video_urls']
+            link = item['link']
+            print(f'{link}, {all_video_urls}')
             # if all_video_urls:
             if all_video_urls:
+                urls = all_video_urls.split(',')
+                if len(urls) >= 0:
+                    download_url = urls[-1]
+                    store_path = download_douyin_video(download_url, link, video_path)
+                    # 随机暂停，降低高频下载风险
+                    wait_seconds = random.uniform(2.0, 5.0)
+                    print(f"sleeping for {wait_seconds:.2f}s, {store_path}")
+                    time.sleep(wait_seconds)
                 print(f"All video URLs: {all_video_urls}")
             else:
                 print("No video URLs found for this item.")
+        
+        
+        
+        
+        
 
 
 
