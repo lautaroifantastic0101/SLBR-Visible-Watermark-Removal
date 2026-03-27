@@ -386,11 +386,14 @@ def main():
         items = query_by_links(client, database_id, account_id, link_ids.split(','))
         print(items)
         for item in items:
+            print(item)
             id = item['id']
             video_frame = item['video_frame']
             video_store_path = item['video_store_path']
-            print(item)
-            # create_shorts_with_borders(video_store_path, '/content/output_video.mp4', video_frame) 
+            if video_frame is None or video_store_path is None:
+                print(f'{id} video frame or video_store_path 是none')
+                continue
+            create_shorts_with_borders(video_store_path, '/content/output_video.mp4', video_frame) 
         
 
 
