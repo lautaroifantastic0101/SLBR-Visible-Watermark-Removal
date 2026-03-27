@@ -268,7 +268,7 @@ def create_shorts_with_borders(content_source, output_path, frame=None):
         else:
             print("frame 字段不完整，跳过裁剪")
     
-    main_content.write_videofile(output_path, fps=30, codec="libx264")
+    # main_content.write_videofile(output_path, fps=30, codec="libx264")
 
     # # 4. 创建背景
     # bg_clip = ColorClip(size=(W, H), color=(0, 0, 0)).set_duration(main_content.duration)
