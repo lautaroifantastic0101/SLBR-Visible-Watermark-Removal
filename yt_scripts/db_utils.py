@@ -17,6 +17,7 @@ def query_by_links(client, database_id, account_id, links):
         query = f"""
         SELECT * FROM youtube_video_crawl_item_tb WHERE link IN ({placeholders})
         """
+        print(query)
 
         # 执行查询
         resp = client.d1.database.query(
