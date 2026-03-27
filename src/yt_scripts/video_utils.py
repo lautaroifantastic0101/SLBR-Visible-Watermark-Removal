@@ -238,6 +238,7 @@ def create_shorts_with_borders(content_source, output_path, frame=None):
     x,y,width,height 均为归一化坐标（0~1）相对于原视频
     作用：根据 frame 信息裁剪视频核心内容，输出一个 1080x1920 的短视频。
     """
+    print('create_shorts_with_borders')
     # 1. 定义全局尺寸
     W, H = 1080, 1920
     border_h = 297.6
@@ -250,6 +251,7 @@ def create_shorts_with_borders(content_source, output_path, frame=None):
         main_content = content_source
 
     # 3. 根据 frame 信息裁剪
+    print('frame')
     print(frame)
     if frame and isinstance(frame, list) and len(frame) > 0:
         region = frame[0]
