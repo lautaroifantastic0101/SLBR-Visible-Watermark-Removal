@@ -5,8 +5,10 @@ import re
 import datetime
 from cloudflare import Cloudflare
 from dateutil.relativedelta import relativedelta
+import sys
 
-from yt_scripts.db_utils import query_by_links
+
+from db_utils import query_by_links
 
 def insert_channel_tb(filename, client, database_id, account_id):
     """
