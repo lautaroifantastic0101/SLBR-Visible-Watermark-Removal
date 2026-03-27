@@ -60,7 +60,7 @@ def update_video_path(client, database_id, account_id, id, store_path):
 
         sql = f"""
         UPDATE youtube_video_crawl_item_tb
-        SET store_path = '{escaped_path}', updated_at = CURRENT_TIMESTAMP
+        SET video_store_path = '{escaped_path}', updated_at = CURRENT_TIMESTAMP
         WHERE id = '{escaped_id}'
         """
 
