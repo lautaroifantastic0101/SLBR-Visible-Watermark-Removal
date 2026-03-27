@@ -44,6 +44,48 @@ def query_by_links(client, database_id, account_id, links):
 
 
 
+def query_by_ids(client, database_id, account_id, ids):
+    """
+    根据输入的多个 links 查询 D1 数据库表 youtube_video_crawl_item_tb，返回结果。
+
+    :param client: Cloudflare 客户端实例
+    :param database_id: 数据库 ID
+    :param account_id: 账户 ID
+    :param links: 要查询的链接列表
+    :return: 查询结果，列表形式
+    """
+    try:
+        # 构造 SQL 查询
+        
+        placeholders = ', '.join([f"{id}" for id in ids])
+        query = f"""
+        SELECT * FROM youtube_video_crawl_item_tb WHERE id IN ({placeholders})
+        """
+        print(query)
+
+        # 执行查询
+        resp = client.d1.database.query(
+            database_id=database_id,
+            account_id=account_id,
+            sql=query
+        )
+
+        # # 检查响应
+        # if resp is None or not resp.get('success', True):
+        #     print("查询失败:", resp.get('errors', resp))
+        #     return []
+
+
+        if not resp.result or not resp.result[0].results:
+            return []
+        return resp.result[0].results
+    # return [{"id": row["id"], "content": row["content"] or "", "title": row["title"] or "", "case_number": row["case_number"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or "", "origin_article_id":row["origin_article_id"] or ""} for row in resp.result[0].results]
+
+    except Exception as e:
+        print(f"查询出错: {e}")
+        return []
+
+
 def update_video_path(client, database_id, account_id, id, store_path, screenshot_path):
     """根据 id 更新 youtube_video_crawl_item_tb 的 store_path 字段。
 

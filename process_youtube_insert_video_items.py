@@ -9,7 +9,7 @@ import sys
 import time, random
 import boto3
 
-from src.yt_scripts.db_utils import query_by_links, update_video_path
+from src.yt_scripts.db_utils import query_by_ids, query_by_links, update_video_path
 from src.yt_scripts.download_utils import download_douyin_video
 from parse_imgs_zip_upload import upload_file
 from src.yt_scripts.video_utils import capture_video_screenshot, create_shorts_with_borders
@@ -283,6 +283,7 @@ def main():
     parser.add_argument("--input_file", help="输入文件路径")
     parser.add_argument("--video_path", help="视频下载路径")
     parser.add_argument("--link_ids", help="需要处理的linkid列表，使用逗号分隔")
+    parser.add_argument("--ids", help="需要处理的id列表，使用逗号分隔")
 
 
     args = parser.parse_args()
@@ -295,6 +296,7 @@ def main():
     input_file = args.input_file
     video_path = args.video_path
     link_ids = args.link_ids
+    ids = args.ids
 
     r2_account_id = args.r2_account_id
     r2_access_key_id = args.r2_access_key_id
@@ -380,10 +382,16 @@ def main():
                 print("No video URLs found for this item.")
         
     elif file_type == 'createvideo':
-        if video_path is None or link_ids is None:
-            print('video_path links不能为空 ')
+        if video_path is None:
+            print('video_path, links ids 不能全为空')
             return 
-        items = query_by_links(client, database_id, account_id, link_ids.split(','))
+        if link_ids is not None:
+            items = query_by_links(client, database_id, account_id, link_ids.split(','))
+        elif ids is not None:
+            items = query_by_ids(client, database_id, account_id, ids.split(','))
+        else:
+            items = []
+            
         print(items)
         for item in items:
             print(item)
