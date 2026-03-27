@@ -250,6 +250,7 @@ def create_shorts_with_borders(content_source, output_path, frame=None):
         main_content = content_source
 
     # 3. 根据 frame 信息裁剪
+    print(frame)
     if frame and isinstance(frame, list) and len(frame) > 0:
         region = frame[0]
         print('region', region)
