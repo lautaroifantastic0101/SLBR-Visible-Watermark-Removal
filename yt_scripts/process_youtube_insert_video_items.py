@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 import sys
 import time, random
 
-from db_utils import query_by_links
+from db_utils import query_by_links, update_video_path
 from download_utils import download_douyin_video
 
 def insert_channel_tb(filename, client, database_id, account_id):
@@ -323,6 +323,7 @@ def main():
         items = query_by_links(client, database_id, account_id, link_ids.split(','))
         for item in items:
             all_video_urls = item['all_video_urls']
+            id = item['id']
             link = item['link']
             print(f'{link}, {all_video_urls}')
             # if all_video_urls:
@@ -331,9 +332,17 @@ def main():
                 if len(urls) >= 0:
                     download_url = urls[-1]
                     store_path = download_douyin_video(download_url, link, video_path)
+                    if store_path is None:
+                        print(f"下载失败: { download_url} (link={link}, id={id})")
+                    else:
+                        print(f"下载成功: {store_path} (link={link}, id={id})")
+                        updated = update_video_path(client, database_id, account_id, id, store_path)
+                        if not updated:
+                            print(f"更新 store_path 失败: id={id}, path={store_path}")
+
                     # 随机暂停，降低高频下载风险
                     wait_seconds = random.uniform(2.0, 5.0)
-                    print(f"sleeping for {wait_seconds:.2f}s, {store_path}")
+                    print(f"sleeping for {wait_seconds:.2f}s")
                     time.sleep(wait_seconds)
                 print(f"All video URLs: {all_video_urls}")
             else:
