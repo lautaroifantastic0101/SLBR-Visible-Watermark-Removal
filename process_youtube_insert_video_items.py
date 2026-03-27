@@ -367,7 +367,7 @@ def main():
                 tmp_img_path = os.path.join('/content/tmp/', f'{link}.jpg')
                 capture_ret = capture_video_screenshot(store_path, tmp_img_path)
                 print(capture_ret)
-                r2key = f'/video_screenshot/{link}.jpg'
+                r2key = f'video_screenshot/{link}.jpg'
                 upload_file(client=s3_client, bucketname=BUCKET_NAME, local_file_path=tmp_img_path, upload_r2_key=r2key)
                 updated = update_video_path(client, database_id, account_id, id, store_path, r2key)
 
