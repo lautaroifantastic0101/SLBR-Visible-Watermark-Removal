@@ -25,10 +25,10 @@ def query_by_links(client, database_id, account_id, links):
             sql=query
         )
 
-        # 检查响应
-        if resp is None or not resp.get('success', True):
-            print("查询失败:", resp.get('errors', resp))
-            return []
+        # # 检查响应
+        # if resp is None or not resp.get('success', True):
+        #     print("查询失败:", resp.get('errors', resp))
+        #     return []
 
 
         if not resp.result or not resp.result[0].results:
