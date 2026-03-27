@@ -9,11 +9,10 @@ import sys
 import time, random
 import boto3
 
-sys.path.append('../')
-from db_utils import query_by_links, update_video_path
-from download_utils import download_douyin_video
+from src.yt_scripts.db_utils import query_by_links, update_video_path
+from src.yt_scripts.download_utils import download_douyin_video
 from parse_imgs_zip_upload import upload_file
-from video_utils import capture_video_screenshot
+from src.yt_scripts.video_utils import capture_video_screenshot
 
 
 
