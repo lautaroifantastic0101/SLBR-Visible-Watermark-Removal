@@ -268,7 +268,7 @@ def main():
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
 
     parser.add_argument("--file_type", required=False, help="video 插入视频信息-搜索结果  channel, channel信息, download  通过url下载视频, ")
-    parser.add_argument("--input_file", required=True, help="输入文件路径")
+    parser.add_argument("--input_file", help="输入文件路径")
     parser.add_argument("--video_path", help="视频下载路径")
     parser.add_argument("--link_ids", help="需要处理的linkid列表，使用逗号分隔")
 
@@ -286,8 +286,16 @@ def main():
 
     client = Cloudflare(api_token=api_token)
     
+    # 检查输入文件是否为空
+
+
     if file_type == 'video':
         # 如果传入的是目录，则遍历目录下的 .jsonl/.json 文件逐个插入
+        if input_file is None:
+            print('input file 不能为空')
+            return 
+
+        
         if os.path.isdir(input_file):
             allowed_ext = ('.jsonl', '.json')
             for entry in sorted(os.listdir(input_file)):
@@ -302,6 +310,9 @@ def main():
         else:
             insert_video_tb(input_file, client, database_id, account_id)
     elif file_type == 'channel': # 将channel信息塞入到数据库中
+        if os.path.isfile(input_file) and os.path.getsize(input_file) == 0:
+            print(f"输入文件 {input_file} 为空，无法处理。")
+            return
         insert_channel_tb(input_file, client, database_id, account_id)
     elif file_type == 'download': # 下载视频信息
         # 将对应的图片下载
