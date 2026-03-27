@@ -384,11 +384,13 @@ def main():
             print('video_path links不能为空 ')
             return 
         items = query_by_links(client, database_id, account_id, link_ids.split(','))
+        print(items)
         for item in items:
             id = item['id']
             video_frame = item['video_frame']
             video_store_path = item['video_store_path']
-            create_shorts_with_borders(video_store_path, '/content/output_video.mp4', video_frame) 
+            print(item)
+            # create_shorts_with_borders(video_store_path, '/content/output_video.mp4', video_frame) 
         
 
 
