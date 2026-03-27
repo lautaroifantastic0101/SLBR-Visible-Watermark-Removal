@@ -267,6 +267,7 @@ def create_shorts_with_borders(content_source, output_path, frame=None):
             y2 = min(oh, y1 + region["height"] * oh)
 
             if x2 > x1 and y2 > y1:
+                # vfx.crop 的入参顺序是 x1, y1 (左上), x2, y2 (右下)
                 print(f"裁剪区域: ({x1:.1f},{y1:.1f}) -> ({x2:.1f},{y2:.1f})")
                 main_content = main_content.crop(x1=x1, y1=y1, x2=x2, y2=y2)
             else:
@@ -274,21 +275,21 @@ def create_shorts_with_borders(content_source, output_path, frame=None):
         else:
             print("frame 字段不完整，跳过裁剪")
     
-    main_content.write_videofile(output_path, fps=30, codec="libx264")
+    # main_content.write_videofile(output_path, fps=30, codec="libx264")
 
     # # 4. 创建背景
-    # bg_clip = ColorClip(size=(W, H), color=(0, 0, 0)).set_duration(main_content.duration)
+    bg_clip = ColorClip(size=(W, H), color=(0, 0, 0)).set_duration(main_content.duration)
 
     # # 5. 缩放主内容，保持比例
-    # main_content = main_content.resize(width=W)
-    # if main_content.h > content_h:
-    #     main_content = main_content.resize(height=content_h)
+    main_content = main_content.resize(width=W)
+    if main_content.h > content_h:
+        main_content = main_content.resize(height=content_h)
 
     # # 6. 叠加到中间
-    # final_video = CompositeVideoClip([
-    #     bg_clip,
-    #     main_content.set_position(("center", border_h))
-    # ])
+    final_video = CompositeVideoClip([
+        bg_clip,
+        main_content.set_position(("center", border_h))
+    ])
 
     # 7. 输出
-    # final_video.write_videofile(output_path, fps=30, codec="libx264")
+    final_video.write_videofile(output_path, fps=30, codec="libx264")
