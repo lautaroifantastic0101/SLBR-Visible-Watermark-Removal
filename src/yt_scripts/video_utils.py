@@ -224,3 +224,62 @@ def capture_video_screenshot(video_path, image_path, frame_time=None):
     except Exception as e:
         print(f"截图过程中发生错误: {e}")
         return False
+
+
+
+def create_shorts_with_borders(content_source, output_path, frame=None):
+    """
+    content_source: 可以是视频路径，也可以是已加载的 Clip
+    output_path: 存储的视频文件
+    frame: 资源素材的框架,
+        [{"id":"df3cdd31-0a70-4502-b10f-a759f5cddf77","x":0.32589285714285715,"y":0.16331573928576226,
+          "width":0.35044642857142855,"height":0.6687349745490686}]
+    
+    x,y,width,height 均为归一化坐标（0~1）相对于原视频
+    作用：根据 frame 信息裁剪视频核心内容，输出一个 1080x1920 的短视频。
+    """
+    # 1. 定义全局尺寸
+    W, H = 1080, 1920
+    border_h = 297.6
+    content_h = H - (border_h * 2)  # 中间可用高度为 1584
+
+    # 2. 读取视频
+    if isinstance(content_source, str):
+        main_content = VideoFileClip(content_source)
+    else:
+        main_content = content_source
+
+    # 3. 根据 frame 信息裁剪
+    if frame and isinstance(frame, list) and len(frame) > 0:
+        region = frame[0]
+        if all(k in region for k in ("x", "y", "width", "height")):
+            ow, oh = main_content.w, main_content.h
+            x1 = max(0, region["x"] * ow)
+            y1 = max(0, region["y"] * oh)
+            x2 = min(ow, x1 + region["width"] * ow)
+            y2 = min(oh, y1 + region["height"] * oh)
+
+            if x2 > x1 and y2 > y1:
+                print(f"裁剪区域: ({x1:.1f},{y1:.1f}) -> ({x2:.1f},{y2:.1f})")
+                main_content = main_content.crop(x1=x1, y1=y1, x2=x2, y2=y2)
+            else:
+                print("frame 参数无效，跳过裁剪")
+        else:
+            print("frame 字段不完整，跳过裁剪")
+
+    # 4. 创建背景
+    bg_clip = ColorClip(size=(W, H), color=(0, 0, 0)).set_duration(main_content.duration)
+
+    # 5. 缩放主内容，保持比例
+    main_content = main_content.resize(width=W)
+    if main_content.h > content_h:
+        main_content = main_content.resize(height=content_h)
+
+    # 6. 叠加到中间
+    final_video = CompositeVideoClip([
+        bg_clip,
+        main_content.set_position(("center", border_h))
+    ])
+
+    # 7. 输出
+    final_video.write_videofile(output_path, fps=30, codec="libx264")

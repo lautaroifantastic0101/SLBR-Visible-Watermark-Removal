@@ -12,7 +12,7 @@ import boto3
 from src.yt_scripts.db_utils import query_by_links, update_video_path
 from src.yt_scripts.download_utils import download_douyin_video
 from parse_imgs_zip_upload import upload_file
-from src.yt_scripts.video_utils import capture_video_screenshot
+from src.yt_scripts.video_utils import capture_video_screenshot, create_shorts_with_borders
 
 
 
@@ -279,7 +279,7 @@ def main():
     parser.add_argument("--r2_secret_access_key", required=False, help="Cloudflare R2 SECRET_ACCESS_KEY，可以通过环境变量传递")
     
     
-    parser.add_argument("--file_type", required=False, help="video 插入视频信息-搜索结果  channel, channel信息, download  通过url下载视频, ")
+    parser.add_argument("--file_type", required=False, help="video 插入视频信息-搜索结果; channel channel信息, download  通过url下载视频; createvideo 生成视频")
     parser.add_argument("--input_file", help="输入文件路径")
     parser.add_argument("--video_path", help="视频下载路径")
     parser.add_argument("--link_ids", help="需要处理的linkid列表，使用逗号分隔")
@@ -379,9 +379,16 @@ def main():
             else:
                 print("No video URLs found for this item.")
         
-        
-        
-        
+    elif file_type == 'createvideo':
+        if video_path is None or link_ids is None:
+            print('video_path links不能为空 ')
+            return 
+        items = query_by_links(client, database_id, account_id, link_ids.split(','))
+        for item in items:
+            id = item['id']
+            video_frame = item['video_frame']
+            video_store_path = item['video_store_path']
+            create_shorts_with_borders(video_store_path, '/content/output_video.mp4', video_frame) 
         
 
 
