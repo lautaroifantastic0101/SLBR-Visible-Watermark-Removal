@@ -321,9 +321,11 @@ def main():
             return 
         items = query_by_links(client, database_id, account_id, link_ids)
         for item in items:
-            all_video_urls = item.get('all_video_urls')
-            print(all_video_urls)
-        
+            all_video_urls = item['all_video_urls']
+            if all_video_urls:
+                print(f"All video URLs: {all_video_urls}")
+            else:
+                print("No video URLs found for this item.")
 
 
 

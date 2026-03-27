@@ -30,7 +30,11 @@ def query_by_links(client, database_id, account_id, links):
             print("查询失败:", resp.get('errors', resp))
             return []
 
-        return resp.get('result', [])
+
+        if not resp.result or not resp.result[0].results:
+            return []
+        return resp.result[0].results
+    # return [{"id": row["id"], "content": row["content"] or "", "title": row["title"] or "", "case_number": row["case_number"] or "", "gemini_ai_resp": row["gemini_ai_resp"] or "", "origin_article_id":row["origin_article_id"] or ""} for row in resp.result[0].results]
 
     except Exception as e:
         print(f"查询出错: {e}")
