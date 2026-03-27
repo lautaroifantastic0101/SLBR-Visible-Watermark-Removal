@@ -44,7 +44,7 @@ def query_by_links(client, database_id, account_id, links):
 
 
 
-def update_video_path(client, database_id, account_id, id, store_path):
+def update_video_path(client, database_id, account_id, id, store_path, screenshot_path):
     """根据 id 更新 youtube_video_crawl_item_tb 的 store_path 字段。
 
     :param client: Cloudflare 客户端实例
@@ -60,7 +60,7 @@ def update_video_path(client, database_id, account_id, id, store_path):
 
         sql = f"""
         UPDATE youtube_video_crawl_item_tb
-        SET video_store_path = '{escaped_path}', updated_at = CURRENT_TIMESTAMP
+        SET video_store_path = '{escaped_path}', updated_at = CURRENT_TIMESTAMP, video_screenshot_path = '{screenshot_path}'
         WHERE id = '{escaped_id}'
         """
 

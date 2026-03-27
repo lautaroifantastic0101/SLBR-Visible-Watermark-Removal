@@ -7,9 +7,14 @@ from cloudflare import Cloudflare
 from dateutil.relativedelta import relativedelta
 import sys
 import time, random
+import boto3
 
 from db_utils import query_by_links, update_video_path
 from download_utils import download_douyin_video
+from parse_imgs_zip_upload import upload_file
+from video_utils import capture_video_screenshot
+
+
 
 def insert_channel_tb(filename, client, database_id, account_id):
     """
@@ -268,6 +273,11 @@ def main():
     parser.add_argument("--cf_d1_account_id", required=False, help="Cloudflare D1 ACCOUNT_ID，可通过环境变量 CF_D1_ACCOUNT_ID 传递")
     parser.add_argument("--cf_d1_database_id", required=False, help="Cloudflare D1 DATABASE_ID，可通过环境变量 CF_D1_DATABASE_ID 传递")
 
+    parser.add_argument("--r2_account_id", required=False, help="Cloudflare R2 ACCOUNT_ID，可以通过环境变量传递")
+    parser.add_argument("--r2_access_key_id", required=False, help="Cloudflare R2 ACCESS_KEY_ID，可以通过环境变量传递")
+    parser.add_argument("--r2_secret_access_key", required=False, help="Cloudflare R2 SECRET_ACCESS_KEY，可以通过环境变量传递")
+    
+    
     parser.add_argument("--file_type", required=False, help="video 插入视频信息-搜索结果  channel, channel信息, download  通过url下载视频, ")
     parser.add_argument("--input_file", help="输入文件路径")
     parser.add_argument("--video_path", help="视频下载路径")
@@ -285,7 +295,22 @@ def main():
     video_path = args.video_path
     link_ids = args.link_ids
 
+    r2_account_id = args.r2_account_id
+    r2_access_key_id = args.r2_access_key_id
+    r2_secret_access_key = args.r2_secret_access_key
+
     client = Cloudflare(api_token=api_token)
+    ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
+    BUCKET_NAME = "my-blog-app"
+
+
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=ENDPOINT_URL,
+        aws_access_key_id=r2_access_key_id,
+        aws_secret_access_key=r2_secret_access_key,
+    )
+
     
     # 检查输入文件是否为空
 
@@ -329,21 +354,30 @@ def main():
             # if all_video_urls:
             if all_video_urls:
                 urls = all_video_urls.split(',')
-                if len(urls) >= 0:
-                    download_url = urls[-1]
-                    store_path = download_douyin_video(download_url, link, video_path)
-                    if store_path is None:
-                        print(f"下载失败: { download_url} (link={link}, id={id})")
-                    else:
-                        print(f"下载成功: {store_path} (link={link}, id={id})")
-                        updated = update_video_path(client, database_id, account_id, id, store_path)
-                        if not updated:
-                            print(f"更新 store_path 失败: id={id}, path={store_path}")
+                if len(urls) == 0:
+                    print(f"{link} all_video_urls 为空")
+                    return 
+                download_url = urls[-1]
+                store_path = download_douyin_video(download_url, link, video_path)
+                if store_path is None:
+                    print(f"下载失败: { download_url} (link={link}, id={id})")
+                    return 
+                print(f"下载成功: {store_path} (link={link}, id={id})")
+                tmp_img_path = os.path.join('/content/tmp/', f'{link}.jpg')
+                if capture_video_screenshot(store_path, tmp_img_path):
+                    r2key = f'/video_screenshot/{link}.jpg'
+                    upload_file(client=s3_client, bucketname=BUCKET_NAME, local_file_path=tmp_img_path, upload_r2_key=r2key)
+                    updated = update_video_path(client, database_id, account_id, id, store_path, tmp_img_path)
 
-                    # 随机暂停，降低高频下载风险
-                    wait_seconds = random.uniform(2.0, 5.0)
-                    print(f"sleeping for {wait_seconds:.2f}s")
-                    time.sleep(wait_seconds)
+                else:
+                    print('截图失败')
+
+                    
+
+                # 随机暂停，降低高频下载风险
+                wait_seconds = random.uniform(2.0, 5.0)
+                print(f"sleeping for {wait_seconds:.2f}s")
+                time.sleep(wait_seconds)
                 print(f"All video URLs: {all_video_urls}")
             else:
                 print("No video URLs found for this item.")

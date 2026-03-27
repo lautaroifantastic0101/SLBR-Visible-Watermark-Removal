@@ -14,6 +14,9 @@ import whisper
 
 
 
+
+
+
 def overlay_text_area(video_path, output_path, boxes, mask_video_path):
     """
     增加：一个overlay mask
@@ -164,3 +167,60 @@ def scan_video_for_chinese(video_path, sample_rate=1):
 #     [np.int32(310), np.int32(368)], [np.int32(782), np.int32(368)], [np.int32(782), np.int32(428)], [np.int32(310), np.int32(428)]]]  # 假设这是 OCR 拿到的坐标
 # overlay_text_area("/content/test1708.mp4", "output6.mp4", boxes,
 #                   "/Users/wushan/models/SLBR-Visible-Watermark-Removal/material/DancingBug.mp4")
+
+
+def capture_video_screenshot(video_path, image_path, frame_time=None):
+    """
+    从视频中截取一张截图并保存为图片
+
+    :param video_path: 视频文件路径
+    :param image_path: 图片保存路径（包含文件名和扩展名，如 .jpg, .png）
+    :param frame_time: 截取的时间点（秒），如果为None则截取第一帧
+    :return: bool 成功返回True，失败返回False
+    """
+    try:
+        # 打开视频文件
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"无法打开视频文件: {video_path}")
+            return False
+
+        # 获取视频信息
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        print(f"视频信息: FPS={fps}, 总帧数={total_frames}")
+
+        # 设置截取位置
+        if frame_time is not None and fps > 0:
+            # 根据时间设置帧位置
+            frame_number = int(frame_time * fps)
+            if frame_number >= total_frames:
+                frame_number = total_frames - 1
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+            print(f"设置到第 {frame_number} 帧 (时间: {frame_time}s)")
+        else:
+            # 截取第一帧
+            print("截取第一帧")
+
+        # 读取帧
+        ret, frame = cap.read()
+        if not ret:
+            print("无法读取视频帧")
+            cap.release()
+            return False
+
+        # 保存图片
+        success = cv2.imwrite(image_path, frame)
+        if success:
+            print(f"截图已保存到: {image_path}")
+        else:
+            print(f"保存图片失败: {image_path}")
+
+        # 释放资源
+        cap.release()
+        return success
+
+    except Exception as e:
+        print(f"截图过程中发生错误: {e}")
+        return False
