@@ -11,7 +11,7 @@ import boto3
 
 from src.yt_scripts.db_utils import query_by_ids, query_by_links, update_video_path
 from src.yt_scripts.download_utils import download_douyin_video
-from parse_imgs_zip_upload import upload_file
+from parse_imgs_zip_upload import download_files, upload_file
 from src.yt_scripts.video_utils import capture_video_screenshot, create_shorts_with_borders
 
 
@@ -305,6 +305,7 @@ def main():
     client = Cloudflare(api_token=api_token)
     ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
     BUCKET_NAME = "my-blog-app"
+    VIDEO_BUCKET_NAME = 'tro-post-img'
 
 
     s3_client = boto3.client(
@@ -324,9 +325,8 @@ def main():
             print('input file 不能为空')
             return 
 
-        
+        allowed_ext = ('.jsonl', '.json')
         if os.path.isdir(input_file):
-            allowed_ext = ('.jsonl', '.json')
             for entry in sorted(os.listdir(input_file)):
                 if entry.startswith('.'):
                     continue
@@ -336,6 +336,19 @@ def main():
                     insert_video_tb(full, client, database_id, account_id)
                 else:
                     print(f"Skipping non-json file: {full}")
+        elif input_file.startswith('r2:'):
+            tmp_folder='/content/tmp_video_json'
+            download_files(client=s3_client, bucketname=VIDEO_BUCKET_NAME, remote_folder=input_file.split(':')[1], local_folder=tmp_folder)
+            for entry in sorted(os.listdir(input_file)):
+                if entry.startswith('.'):
+                    continue
+                full = os.path.join(input_file, entry)
+                if os.path.isfile(full) and full.lower().endswith(allowed_ext):
+                    print(f"Processing file: {full}")
+                    insert_video_tb(full, client, database_id, account_id)
+                else:
+                    print(f"Skipping non-json file: {full}")
+
         else:
             insert_video_tb(input_file, client, database_id, account_id)
     elif file_type == 'channel': # 将channel信息塞入到数据库中
@@ -393,16 +406,21 @@ def main():
             items = []
             
         print(items)
+        processed_links = set()
         for item in items:
             print(item)
             id = item['id']
+            link = item['link']
+            if link in processed_links:
+                # 处理过的links
+                continue
             video_frame = item['video_frame']
             video_store_path = item['video_store_path']
             if video_frame is None or video_store_path is None:
                 print(f'{id} video frame or video_store_path 是none')
                 continue
             create_shorts_with_borders(video_store_path, '/content/output_video.mp4', video_frame) 
-        
+            processed_links.add(link)
 
 
 

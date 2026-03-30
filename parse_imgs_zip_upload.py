@@ -11,6 +11,51 @@ from datetime import datetime
 load_dotenv()
 
 
+def download_files(client, bucketname, remote_folder, local_folder):
+    """
+    从 R2 下载指定文件夹到本地
+
+    Args:
+        client: boto3 S3 客户端
+        bucketname: R2 桶名
+        remote_folder: R2 中的文件夹路径（前缀）
+        local_folder: 本地文件夹路径
+    """
+    try:
+        # 确保本地文件夹存在
+        os.makedirs(local_folder, exist_ok=True)
+
+        # 列出 R2 中指定前缀的所有对象
+        paginator = client.get_paginator('list_objects_v2')
+        page_iterator = paginator.paginate(Bucket=bucketname, Prefix=remote_folder)
+
+        downloaded_count = 0
+        for page in page_iterator:
+            if 'Contents' in page:
+                for obj in page['Contents']:
+                    key = obj['Key']
+                    # 计算相对路径
+                    relative_path = key[len(remote_folder):].lstrip('/')
+                    if not relative_path:
+                        continue  # 跳过文件夹本身
+
+                    local_file_path = os.path.join(local_folder, relative_path)
+
+                    # 确保本地子文件夹存在
+                    os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+
+                    # 下载文件
+                    print(f"Downloading {key} to {local_file_path}")
+                    client.download_file(bucketname, key, local_file_path)
+                    downloaded_count += 1
+
+        print(f"Downloaded {downloaded_count} files from {remote_folder} to {local_folder}")
+        return True
+
+    except Exception as e:
+        print(f"Error downloading files: {e}")
+        return False
+
 
 
 def upload_file(client, bucketname, local_file_path, upload_r2_key):
@@ -137,21 +182,18 @@ def get_origin_urls_with_null_new_url(client, ACCOUNT_ID, DATABASE_ID, limit=100
 
 
 if __name__ == "__main__":
-    zip_path = '/Users/wushan/Downloads/rst_20260120121511_1801_2111.zip'
-    output_dir = '/Users/wushan/Downloads/tmp'
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="下载 R2 文件夹到本地")
+    parser.add_argument("--remote_folder", required=True, help="R2 中的远程文件夹路径")
+    parser.add_argument("--local_folder", required=True, help="本地文件夹路径")
+
+    args = parser.parse_args()
 
     ACCOUNT_ID = os.getenv("CF_D1_ACCOUNT_ID")
     ACCESS_KEY_ID = os.getenv("CF_R2_ACCESS_KEY_ID")
     SECRET_ACCESS_KEY = os.getenv("CF_R2_SECRET_ACCESS_KEY")
     bucket_name = os.getenv("CF_R2_BUCKET_NAME")
-
-    d1_token = os.getenv("CF_D1_API_TOKEN")
-    d1_database_id = os.getenv("CF_D1_DATABASE_ID")
-
-    
 
     ENDPOINT_URL = f"https://{ACCOUNT_ID}.r2.cloudflarestorage.com"
 
@@ -161,54 +203,9 @@ if __name__ == "__main__":
         aws_access_key_id=ACCESS_KEY_ID,
         aws_secret_access_key=SECRET_ACCESS_KEY,
     )
-    d1_client = Cloudflare(
-        api_token=d1_token,  # This is the default and can be omitted
-    )
 
     print("======client 初始化完成")
 
-
-    with zipfile.ZipFile(zip_path, 'r') as z:
-        z.extractall(output_dir)
-        print(f"已解压到 {output_dir}")
-
-    # 定义目录路径
-    out_put_dir = Path(output_dir)
-
-    # 定义图片后缀名集合（使用集合提高查找速度）
-    image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff'}
-
-    # rglob('*') 表示递归遍历所有子文件夹；如果只想看当前层级，改用 glob('*')
-    for img_path in out_put_dir.rglob('*'):
-        # 检查文件后缀是否在图片后缀集合中
-        print('img_path', img_path)
-        if img_path.suffix.lower() in image_extensions:
-            now = datetime.now()
-            date_path = f"/{now.year}/{now.month:02d}/{now.day:02d}"
-            # print(date_path)
-            
-            import hashlib
-            md5_hash = hashlib.md5(img_path.name.encode('utf-8')).hexdigest()
-            # print(f"MD5（32位）: {md5_hash}")
-
-            extension = img_path.suffix.lower()  # 包括点，如 ".jpg"
-            # print(f"后缀名: {extension}")
-            
-            row_id = img_path.name.split('_')[0]
-            upload_r2_key = f'{date_path}/{md5_hash}{extension}'
-            print(upload_r2_key)
-            # print(f"文件名: {img_path.name}")
-            # print(f"完整路径: {img_path}")
-
-            
-            # ------------------------------------------------------
-            # 上传文件 到r2 存储中
-            # 上传成功以后，将key更新到d1 数据库对应的行中
-            # ------------------------------------------------------
-            try:
-                upload_file(client=s3_client, bucketname=bucket_name, local_file_path=img_path, upload_r2_key=upload_r2_key)
-                update_image_url(d1_client, row_id, upload_r2_key, ACCOUNT_ID, d1_database_id)
-                
-            except Exception as e:
-                continue
+    # 下载 R2 文件夹到本地
+    download_files(s3_client, bucket_name, args.remote_folder, args.local_folder)
             
