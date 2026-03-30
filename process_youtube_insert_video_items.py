@@ -337,18 +337,19 @@ def main():
                 else:
                     print(f"Skipping non-json file: {full}")
         elif input_file.startswith('r2:'):
-            tmp_folder='/content/tmp_video_json'
+            tmp_folder = '/content/tmp_video_json'
             print(input_file.split(':')[1])
-            download_files(client=s3_client, bucketname=VIDEO_BUCKET_NAME, remote_folder=input_file.split(':')[1], local_folder=tmp_folder)
-            # for entry in sorted(os.listdir(input_file)):
-            #     if entry.startswith('.'):
-            #         continue
-            #     full = os.path.join(input_file, entry)
-            #     if os.path.isfile(full) and full.lower().endswith(allowed_ext):
-            #         print(f"Processing file: {full}")
-            #         insert_video_tb(full, client, database_id, account_id)
-            #     else:
-            #         print(f"Skipping non-json file: {full}")
+            r2_local_path = input_file.split(':')[1]
+            download_files(client=s3_client, bucketname=VIDEO_BUCKET_NAME, remote_folder=r2_local_path, local_folder=tmp_folder)
+            for entry in sorted(os.listdir(r2_local_path)):
+                if entry.startswith('.'):
+                    continue
+                full = os.path.join(input_file, entry)
+                if os.path.isfile(full) and full.lower().endswith(allowed_ext):
+                    print(f"Processing file: {full}")
+                    insert_video_tb(full, client, database_id, account_id)
+                else:
+                    print(f"Skipping non-json file: {full}")
 
         else:
             insert_video_tb(input_file, client, database_id, account_id)
