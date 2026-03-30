@@ -151,6 +151,7 @@ def insert_video_tb(filename, client, database_id, account_id):
                     
 
 
+        print(';'.join(sqls))
         resp = client.d1.database.query(
             database_id=database_id,
             account_id=account_id,
@@ -338,7 +339,7 @@ def main():
                     print(f"Skipping non-json file: {full}")
         elif input_file.startswith('r2:'):
             tmp_folder = '/content/tmp_video_json'
-            print(input_file.split(':')[1])
+            # print(input_file.split(':')[1])
             r2_local_path = input_file.split(':')[1]
             download_files(client=s3_client, bucketname=VIDEO_BUCKET_NAME, remote_folder=r2_local_path, local_folder=tmp_folder)
             for entry in sorted(os.listdir(tmp_folder)):
