@@ -341,10 +341,10 @@ def main():
             print(input_file.split(':')[1])
             r2_local_path = input_file.split(':')[1]
             download_files(client=s3_client, bucketname=VIDEO_BUCKET_NAME, remote_folder=r2_local_path, local_folder=tmp_folder)
-            for entry in sorted(os.listdir(r2_local_path)):
+            for entry in sorted(os.listdir(tmp_folder)):
                 if entry.startswith('.'):
                     continue
-                full = os.path.join(input_file, entry)
+                full = os.path.join(tmp_folder, entry)
                 if os.path.isfile(full) and full.lower().endswith(allowed_ext):
                     print(f"Processing file: {full}")
                     insert_video_tb(full, client, database_id, account_id)
