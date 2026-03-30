@@ -151,7 +151,10 @@ def insert_video_tb(filename, client, database_id, account_id):
                     
 
 
-        print(';'.join(sqls))
+        if len(sqls) == 0:
+            print('sqls 为空')
+            return 
+
         resp = client.d1.database.query(
             database_id=database_id,
             account_id=account_id,
