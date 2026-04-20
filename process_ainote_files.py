@@ -1,9 +1,36 @@
 import argparse
+import json
 import os
 from urllib.parse import urlparse
 
 import requests
 from cloudflare import Cloudflare
+
+
+def to_ts_string(value):
+    return json.dumps("" if value is None else str(value), ensure_ascii=False)
+
+
+def to_ts_number(value):
+    if value is None:
+        return "0"
+    text = str(value).strip().replace(",", "")
+    if not text:
+        return "0"
+    try:
+        return str(int(float(text)))
+    except ValueError:
+        return "0"
+
+
+def build_output_filename(page):
+    page_name = (page or "tools-config").strip()
+    if not page_name:
+        page_name = "tools-config"
+    page_name = page_name.replace("/", "-").replace("\\", "-")
+    if not page_name.endswith(".ts"):
+        page_name += ".ts"
+    return page_name
 
 
 def normalize_github_repo(link):
@@ -61,6 +88,86 @@ def select_rows(client, account_id, database_id, beginid=None, limit=None):
         return []
     first = resp.result[0]
     return first.results if hasattr(first, "results") and first.results else []
+
+
+def select_rows_for_genfile(client, account_id, database_id, beginid=None, limit=None):
+    sql = """
+    SELECT id, page, title, icon, description, link, stars, forks, type, last_commit
+    FROM myainote_open_source_tool_tb
+    WHERE page IS NOT NULL AND trim(page) != ''
+    """
+
+    params = []
+    if beginid is not None:
+        sql += " AND id >= ?"
+        params.append(str(beginid))
+
+    sql += " ORDER BY page ASC, id ASC"
+
+    if limit is not None:
+        sql += " LIMIT ?"
+        params.append(str(limit))
+
+    resp = client.d1.database.query(
+        account_id=account_id,
+        database_id=database_id,
+        sql=sql,
+        params=params if params else None,
+    )
+
+    if not resp.result:
+        return []
+    first = resp.result[0]
+    return first.results if hasattr(first, "results") and first.results else []
+
+
+def render_tools_ts(rows):
+    lines = [
+        "import { ToolInfo } from '@/lib/aiapis';",
+        "",
+        "export const tools: ToolInfo[] = [",
+    ]
+
+    for row in rows:
+        lines.extend([
+            "  {",
+            f"    title: {to_ts_string(row.get('title'))},",
+            f"    icon: {to_ts_string(row.get('icon'))},",
+            f"    description: {to_ts_string(row.get('description'))},",
+            f"    link: {to_ts_string(row.get('link'))},",
+            f"    stars: {to_ts_number(row.get('stars'))},",
+            f"    forks: {to_ts_number(row.get('forks'))},",
+            f"    type: {to_ts_string(row.get('type'))},",
+            f"    lastCommit: {to_ts_string(row.get('last_commit'))},",
+            "  },",
+        ])
+
+    lines.append("];\n")
+    return "\n".join(lines)
+
+
+def generate_ts_files(client, account_id, database_id, output_path, beginid=None, limit=None):
+    rows = select_rows_for_genfile(client, account_id, database_id, beginid=beginid, limit=limit)
+    if not rows:
+        print("没有可生成配置文件的数据")
+        return
+
+    os.makedirs(output_path, exist_ok=True)
+
+    page_rows_map = {}
+    for row in rows:
+        page = (row.get("page") or "").strip()
+        if not page:
+            continue
+        page_rows_map.setdefault(page, []).append(row)
+
+    for page, page_rows in page_rows_map.items():
+        file_name = build_output_filename(page)
+        file_path = os.path.join(output_path, file_name)
+        content = render_tools_ts(page_rows)
+        with open(file_path, "w", encoding="utf-8") as output_file:
+            output_file.write(content)
+        print(f"[GENFILE] page={page}, file={file_path}, count={len(page_rows)}")
 
 
 def fetch_repo_stats(session, repo_full_name, github_token=None):
@@ -123,6 +230,9 @@ def main():
     
     parser.add_argument("--beginid", type=int, help="处理起始 id（含）")
     parser.add_argument("--limit", type=int, help="处理的数量")
+
+    parser.add_argument("--genfile", action="store_true", help="生成配置文件")
+    parser.add_argument("--output_path", required=False, default="./", help="生成文件的输出路径，默认为 ./")
     
     
     args = parser.parse_args()
@@ -135,6 +245,9 @@ def main():
     
     beginid = args.beginid
     limit = args.limit
+    genfile = args.genfile
+    output_path = args.output_path
+
 
     if not all([api_token, account_id, database_id]):
         print("缺少 D1 配置，请提供 --cf_d1_* 或环境变量 CF_D1_API_TOKEN / CF_D1_ACCOUNT_ID / CF_D1_DATABASE_ID")
@@ -167,8 +280,20 @@ def main():
         except Exception as e:
             failed += 1
             print(f"[FAIL] id={row_id}, repo={repo_full_name}, error={e}")
-
+    
     print(f"完成: success={success}, failed={failed}, skipped={skipped}, total={len(rows)}")
+
+    if genfile:
+        generate_ts_files(
+            client,
+            account_id,
+            database_id,
+            output_path=output_path,
+            beginid=beginid,
+            limit=limit,
+        )
+        
+
 
 
 if __name__ == '__main__':
