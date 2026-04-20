@@ -146,7 +146,7 @@ def render_tools_ts(rows):
     return "\n".join(lines)
 
 
-def generate_ts_files(client, account_id, database_id, output_path, beginid=None, limit=None):
+def generate_ts_files(client, account_id, database_id, output_path, beginid=1, limit=10000):
     rows = select_rows_for_genfile(client, account_id, database_id, beginid=beginid, limit=limit)
     if not rows:
         print("没有可生成配置文件的数据")
@@ -289,8 +289,8 @@ def main():
             account_id,
             database_id,
             output_path=output_path,
-            beginid=beginid,
-            limit=limit,
+            # beginid=beginid,
+            # limit=limit,
         )
         
 
