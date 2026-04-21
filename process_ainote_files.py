@@ -60,10 +60,10 @@ def select_rows(client, account_id, database_id, beginid=None, limit=None):
     sql = """
     SELECT id, link
     FROM myainote_open_source_tool_tb
-    WHERE lower(trim(link)) LIKE 'https://github.com/%'
+    WHERE (lower(trim(link)) LIKE 'https://github.com/%'
        OR lower(trim(link)) LIKE 'http://github.com/%'
        OR lower(trim(link)) LIKE 'https://www.github.com/%'
-       OR lower(trim(link)) LIKE 'http://www.github.com/%'
+       OR lower(trim(link)) LIKE 'http://www.github.com/%')
     """
 
     params = []
