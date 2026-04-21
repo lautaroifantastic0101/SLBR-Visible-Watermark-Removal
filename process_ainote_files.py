@@ -77,6 +77,8 @@ def select_rows(client, account_id, database_id, beginid=None, limit=None):
         sql += " LIMIT ?"
         params.append(str(limit))
 
+    print(params)
+    print(sql)
     resp = client.d1.database.query(
         account_id=account_id,
         database_id=database_id,
