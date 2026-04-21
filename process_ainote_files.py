@@ -256,8 +256,9 @@ def main():
     client = Cloudflare(api_token=api_token)
     session = requests.Session()
 
+
     rows = select_rows(client, account_id, database_id, beginid=beginid, limit=limit)
-    print(f"待处理记录数: {len(rows)}")
+    print(f"待处理记录数: {len(rows)}, beginid={beginid}, limit={limit}")
 
     success = 0
     failed = 0
