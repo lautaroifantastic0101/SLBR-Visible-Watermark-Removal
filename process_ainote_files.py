@@ -60,10 +60,10 @@ def select_rows(client, account_id, database_id, beginid=None, limit=None):
     sql = """
     SELECT id, link
     FROM myainote_open_source_tool_tb
-    WHERE lower(trim(link)) LIKE 'https://github.com/%'
+    WHERE (lower(trim(link)) LIKE 'https://github.com/%'
        OR lower(trim(link)) LIKE 'http://github.com/%'
        OR lower(trim(link)) LIKE 'https://www.github.com/%'
-       OR lower(trim(link)) LIKE 'http://www.github.com/%'
+       OR lower(trim(link)) LIKE 'http://www.github.com/%')
     """
 
     params = []
@@ -77,6 +77,8 @@ def select_rows(client, account_id, database_id, beginid=None, limit=None):
         sql += " LIMIT ?"
         params.append(str(limit))
 
+    print(params)
+    print(sql)
     resp = client.d1.database.query(
         account_id=account_id,
         database_id=database_id,
@@ -256,8 +258,9 @@ def main():
     client = Cloudflare(api_token=api_token)
     session = requests.Session()
 
+
     rows = select_rows(client, account_id, database_id, beginid=beginid, limit=limit)
-    print(f"待处理记录数: {len(rows)}")
+    print(f"待处理记录数: {len(rows)}, beginid={beginid}, limit={limit}")
 
     success = 0
     failed = 0
