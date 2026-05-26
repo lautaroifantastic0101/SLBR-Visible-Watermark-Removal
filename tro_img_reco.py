@@ -39,7 +39,7 @@ _project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from parse_imgs_zip_upload import get_origin_urls_with_null_new_url, update_image_url, update_image_url_and_class, upload_file
+from utils.parse_imgs_zip_upload import get_origin_urls_with_null_new_url, update_image_url, update_image_url_and_class, upload_file
 from slbr_predict import slbr_predict_custom
 import src.networks as nets
 import src.models as models

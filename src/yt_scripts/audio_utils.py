@@ -14,6 +14,30 @@ def is_contains_chinese(text):
     return re.search(r'[\u4e00-\u9fff]', text) is not None
 
 
+def speechToText(audio_path, model_size="base"):
+    """将音频转录为文本
+
+    Args:
+        audio_path (_type_): _description_
+        model_size (str, optional): _description_. Defaults to "base".
+
+    Returns:
+        _type_: _description_
+    """
+    # 1. 加载模型 (建议 Colab 选 base 或 small，兼顾速度与精度)
+    model = whisper.load_model(model_size)
+    
+    # 2. 转录音频
+    # 不指定 language 它可以自动检测，但在混合音频中，建议让它自由识别
+    print(f"正在分析音频: {audio_path}...")
+    result = model.transcribe(audio_path, verbose=False)
+
+    print(result['text'])
+    
+    return result['text']
+
+
+
 def detect_chinese_segments(audio_path, model_size="base"):
     """识别语音是否存在中文，如果有的话，返回list
 
@@ -31,6 +55,8 @@ def detect_chinese_segments(audio_path, model_size="base"):
     # 不指定 language 它可以自动检测，但在混合音频中，建议让它自由识别
     print(f"正在分析音频: {audio_path}...")
     result = model.transcribe(audio_path, verbose=False)
+
+    print(result['segments'])
     
     chinese_segments = []
     

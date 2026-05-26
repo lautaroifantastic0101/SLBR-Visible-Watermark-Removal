@@ -11,7 +11,7 @@ import boto3
 
 from src.yt_scripts.db_utils import query_by_ids, query_by_links, update_video_path
 from src.yt_scripts.download_utils import download_douyin_video
-from parse_imgs_zip_upload import download_files, upload_file
+from utils.parse_imgs_zip_upload import download_files, upload_file
 from src.yt_scripts.video_utils import capture_video_screenshot, create_shorts_with_borders
 
 

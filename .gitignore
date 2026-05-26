@@ -5,7 +5,7 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .cache/
-
+*.mp3
 # Virtual environments
 .env
 .venv

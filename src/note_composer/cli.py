@@ -4,6 +4,7 @@ import os
 import re
 from utils.parse_imgs_zip_upload import upload_file
 import boto3
+from utils.deepseek_api_call import translate_english_to_chinese
 
 def normalize_text(text):
     normalized = text.lower().replace("'", "")
@@ -252,23 +253,26 @@ def open_frame_picture(s3_client, frame_index, pic_frame_outputpath):
     
 
 
-def write_markdown(s3_client, composed_notes, output_file):
+def write_markdown(s3_client, composed_notes, output_file, deepseek_api_key=None):
     # pic_frame_outputpath = os.path.join(os.path.dirname(output_file), "frames")
-
 
     with open(output_file, 'w', encoding='utf-8') as f:
         for note in composed_notes:
             title = note.get('json_title', 'N/A')
             content = note.get('json_content', 'N/A')
             frames = note.get('frames', [])
-
+            if deepseek_api_key is None:
+                translated_content = content
+            else:
+                translated_content = translate_english_to_chinese(content, api_key=deepseek_api_key)
+            
             if frames and len(frames) > 0:
                 r2_key = open_frame_picture(s3_client, frames[0], os.path.dirname(output_file))
                 if r2_key:
-                    content += f"\n\n![Frame Image]({r2_key})\n\n"
+                    translated_content += f"\n\n![Frame Image]({r2_key})\n\n"
 
             f.write(f"# {title}\n\n")
-            f.write(f"{content}\n\n")
+            f.write(f"{translated_content}\n\n")
             f.write("\n---\n\n")
 
 
@@ -383,7 +387,7 @@ export default function Page() {{
                                     return (
                                         <img
                                             key={{blockIndex}}
-                                            src={{`${{process.env.CLOUDFLARE_R2_HOST}}/${{block.src}}`}}
+                                            src={{`${{process.env.NEXT_PUBLIC_CLOUDFLARE_R2_HOST}}/${{block.src}}`}}
                                             alt={{block.alt}}
                                             className="w-full rounded-2xl border border-slate-200 object-cover shadow-sm"
                                         />
@@ -437,7 +441,7 @@ def main(path_to_note):
 
 
 
-def note_composer_to_markdown_main(file_path, r2_account_id, r2_access_key_id, r2_secret_access_key, BUCKET_NAME):
+def note_composer_to_markdown_main(file_path, r2_account_id, r2_access_key_id, r2_secret_access_key, BUCKET_NAME, deepseek_api_key=None):
 
     # parser = argparse.ArgumentParser(description="转化文档")
     # args_cli = parser.parse_args()
@@ -472,15 +476,14 @@ def note_composer_to_markdown_main(file_path, r2_account_id, r2_access_key_id, r
     for note in composed_notes:
         print(f"Title: {note.get('json_title', 'N/A')}")
         print(f"Content: {note.get('json_content', 'N/A')}")
-        print(f"frames: {note.get('frames', 'N/A')}")
-        
+        print(f"frames: {note.get('frames', 'N/A')}")    
         print("-" * 40)
 
     
     # current_dir = Path(__file__).resolve().parent
     last_folder = os.path.basename(os.path.dirname(file_path))
     print(f"Current directory: {last_folder}")
-    write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), "composed_notes.md"))
+    write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), "composed_notes.md"), deepseek_api_key=deepseek_api_key)
 
 
 
@@ -496,6 +499,7 @@ def parse_args():
     parser.add_argument('--r2_account_id', required=True, help='Cloudflare R2 account id.')
     parser.add_argument('--r2_access_key_id', required=True, help='Cloudflare R2 access key id.')
     parser.add_argument('--r2_secret_access_key', required=True, help='Cloudflare R2 secret access key.')
+    parser.add_argument('--deepseek_api_key', required=False, help='Deepseek API key, optional for future use.')
     parser.add_argument('--note_title', default=None, help='Optional title used in the generated page.tsx.')
     return parser.parse_args()
 
@@ -512,6 +516,7 @@ if __name__ == "__main__":
         args.r2_access_key_id,
         args.r2_secret_access_key,
         args.BUCKET_NAME,
+        deepseek_api_key=args.deepseek_api_key,
     )
     note_markdown_to_pagetsx_main(
         os.path.join(fp, "composed_notes.md"),
