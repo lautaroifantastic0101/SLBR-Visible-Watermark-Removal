@@ -10,7 +10,7 @@ import time, random
 import boto3
 
 from src.yt_scripts.db_utils import query_by_ids, query_by_links, update_video_path
-from src.yt_scripts.download_utils import download_douyin_video
+from src.yt_scripts.download_utils import download_youtube_video
 from utils.parse_imgs_zip_upload import download_files, upload_file
 from src.yt_scripts.video_utils import capture_video_screenshot, create_shorts_with_borders
 
@@ -288,6 +288,7 @@ def main():
     parser.add_argument("--video_path", help="视频下载路径")
     parser.add_argument("--link_ids", help="需要处理的linkid列表，使用逗号分隔")
     parser.add_argument("--ids", help="需要处理的id列表，使用逗号分隔")
+    parser.add_argument("--proxy", required=False, help="下载视频时使用的代理地址，例如 http://127.0.0.1:7890")
 
 
     args = parser.parse_args()
@@ -301,6 +302,7 @@ def main():
     video_path = args.video_path
     link_ids = args.link_ids
     ids = args.ids
+    proxy = args.proxy
 
     r2_account_id = args.r2_account_id
     r2_access_key_id = args.r2_access_key_id
@@ -380,7 +382,7 @@ def main():
                     print(f"{link} all_video_urls 为空")
                     return 
                 download_url = urls[-1]
-                store_path = download_douyin_video(download_url, link, video_path)
+                store_path = download_youtube_video(download_url, link, video_path, proxy=proxy)
                 if store_path is None:
                     print(f"下载失败: { download_url} (link={link}, id={id})")
                     return 

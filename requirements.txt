@@ -14,5 +14,6 @@ scikit_image
 tensorboardX
 requests
 ultralytics
+yt-dlp
 
 cloudflare
