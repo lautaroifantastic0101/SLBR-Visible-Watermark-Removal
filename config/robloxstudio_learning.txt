@@ -1,0 +1,15 @@
+https://www.youtube.com/watch?v=Irtrmwc_L30||Variables
+https://www.youtube.com/watch?v=zuwX4qwQTs8||Properties
+https://www.youtube.com/watch?v=f7aFVY5lCW4||Functions
+https://www.youtube.com/watch?v=kcxHckKcQxQ||Parameters, Math, & Returns
+https://www.youtube.com/watch?v=sTyqW1vSPSk||If Statements
+https://www.youtube.com/watch?v=CJfDSEN-Q5Q||Scoping
+https://www.youtube.com/watch?v=udv7SG5ZTbQ||Operators
+https://www.youtube.com/watch?v=sipD9pFL2lU||Loops
+https://www.youtube.com/watch?v=wGOIHay5y2A||Breaks & Continues
+https://www.youtube.com/watch?v=Wp3WhFo-km4||Events
+https://www.youtube.com/watch?v=4cxqWRmtqyY||FindFirstChild & WaitForChild
+https://www.youtube.com/watch?v=5r1iB1aGuJk||Random
+https://www.youtube.com/watch?v=FPo3UNTfk-w||Playerstats
+https://www.youtube.com/watch?v=PIyj-A9SZd4||Tables
+https://www.youtube.com/watch?v=72jPOsUr_Bc||Final Game

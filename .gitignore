@@ -12,6 +12,8 @@ __pycache__/
 env/
 venv/
 
+*bash_run_video_to_page_step2*
+
 # Project settings / OS cruft
 .DS_Store
 .idea/

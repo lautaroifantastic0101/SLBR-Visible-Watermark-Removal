@@ -4,7 +4,11 @@ import os
 import re
 from utils.parse_imgs_zip_upload import upload_file
 import boto3
-from utils.deepseek_api_call import translate_english_to_chinese
+from utils.deepseek_api_call import (
+    call_deepseek_chat,
+    parse_deepseek_response,
+    translate_english_to_chinese,
+)
 
 def normalize_text(text):
     normalized = text.lower().replace("'", "")
@@ -263,15 +267,17 @@ def write_markdown(s3_client, composed_notes, output_file, deepseek_api_key=None
             frames = note.get('frames', [])
             if deepseek_api_key is None:
                 translated_content = content
+                translated_title = title
             else:
                 translated_content = translate_english_to_chinese(content, api_key=deepseek_api_key)
+                translated_title = translate_english_to_chinese(title, api_key=deepseek_api_key)
             
             if frames and len(frames) > 0:
                 r2_key = open_frame_picture(s3_client, frames[0], os.path.dirname(output_file))
                 if r2_key:
                     translated_content += f"\n\n![Frame Image]({r2_key})\n\n"
 
-            f.write(f"# {title}\n\n")
+            f.write(f"# {translated_title}\n\n")
             f.write(f"{translated_content}\n\n")
             f.write("\n---\n\n")
 
@@ -420,11 +426,80 @@ def write_page_tsx(markdown_fp, output_fp=None, note_title=None):
         return output_fp, len(sections)
 
 
-def main(path_to_note):
+def generate_chaps(path_to_note, output_chap_txt_fp, deepseek_api_key=None):
+    analysis_json_fp = os.path.join(path_to_note, 'output', 'analysis.json')
+    if not os.path.exists(analysis_json_fp):
+        print(f"File not found: {analysis_json_fp}")
+        return None
+
+    output_path = output_chap_txt_fp
+    if not os.path.isabs(output_path):
+        output_path = os.path.join(path_to_note, output_path)
+
+    with open(analysis_json_fp, 'r', encoding='utf-8') as file:
+        try:
+            analysis_data = json.load(file)
+            text = analysis_data.get('transcript', {}).get('text', '')
+        except json.JSONDecodeError as exc:
+            print(f"Invalid JSON in file {analysis_json_fp}: {exc}")
+            return None
+
+    if not text or not text.strip():
+        print(f"Transcript text is empty in file: {analysis_json_fp}")
+        return None
+
+    system_content = (
+        "You are a note structuring assistant. "
+        "Split the provided transcript into a small number of coherent sections. "
+        "Return plain text only. For each section, use this exact format: "
+        "**Section Title** followed by one or more paragraph lines. "
+        "Separate sections with a blank line. "
+        "Do not return JSON, code fences, or extra commentary."
+    )
+    prompt = (
+        "Please divide the following transcript into several logical sections for study notes.\n\n"
+        "Requirements:\n"
+        "1. Keep the original transcript language.\n"
+        "2. Generate a concise title for each section, numbered sequentially.\n"
+        "3. Use the format **Section Title** on its own line, then the section content below it.\n"
+        "4. Separate each section with exactly one blank line.\n"
+        "5. Preserve original text\n\n"
+        f"Transcript:\n{text.strip()}"
+    )
+
+    try:
+        response = call_deepseek_chat(
+            api_key=deepseek_api_key or os.getenv('DEEPSEEK_API_KEY', ''),
+            prompt=prompt,
+            system_content=system_content,
+        )
+        parsed = parse_deepseek_response(response)
+        chapter_text = parsed.get('content', '').strip()
+    except Exception as exc:
+        print(f"Failed to generate chapters with DeepSeek: {exc}")
+        return None
+
+    if not chapter_text:
+        print("DeepSeek returned empty chapter text.")
+        return None
+
+    with open(output_path, 'w', encoding='utf-8') as output_file:
+        output_file.write(chapter_text)
+
+    print(f"Chapters saved to: {output_path}")
+    return output_path
+
+
+def main(path_to_note, deepseek_api_key=None):
     print("Welcome to Note Composer!")
     print("This is a simple CLI tool to help you compose notes.")
     print("You can create, edit, and save your notes easily.")
-    chapters = load_chaps_txt(os.path.join(path_to_note, 'chaps.txt'))
+
+    chap_path = generate_chaps(path_to_note, 'chaps.txt', deepseek_api_key=deepseek_api_key)
+    print(f"Generated chapters file at: {chap_path}")
+
+    chapters_fp = chap_path or os.path.join(path_to_note, 'chaps.txt')
+    chapters = load_chaps_txt(chapters_fp)
     video_analyzer_output = load_video_analyzer_output_json(
         os.path.join(path_to_note, 'output', 'analysis.json')
     )
@@ -509,7 +584,7 @@ if __name__ == "__main__":
     args = parse_args()
     fp = args.fp
 
-    main(fp)
+    main(fp, deepseek_api_key=args.deepseek_api_key)
     note_composer_to_markdown_main(
         os.path.join(fp, "composed_notes.json"),
         args.r2_account_id,
@@ -522,7 +597,3 @@ if __name__ == "__main__":
         os.path.join(fp, "composed_notes.md"),
         note_title=args.note_title or os.path.basename(os.path.normpath(fp)),
     )
-
-
-    
-
