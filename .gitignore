@@ -53,3 +53,4 @@ weights/
 !smallmodels/*
 
 *.ckpt
+src/bash_ainote_run_video_to_page_step2.py

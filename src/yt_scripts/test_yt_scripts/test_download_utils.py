@@ -9,3 +9,8 @@ if __name__  == "__main__":
         save_dir="D:\\download_youtube",
         proxy="http://127.0.0.1:7890",
     )
+
+    a = '123123123 123123 ??123123'
+    b = os.path.normpath(a)
+    c = os.path.splitext(b)
+    print(c[0])

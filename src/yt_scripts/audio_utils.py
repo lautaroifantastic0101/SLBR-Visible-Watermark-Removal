@@ -9,6 +9,11 @@ from scipy.io.wavfile import write as write_wav
 import torch.serialization
 torch.load = lambda *args, **kwargs: torch.serialization.load(*args, **kwargs)
 
+
+def build_transcript_output_path(audio_path, output_ext=".txt"):
+    base_path, _ = os.path.splitext(audio_path)
+    return f"{base_path}{output_ext}"
+
 def is_contains_chinese(text):
     """检查字符串中是否包含汉字"""
     return re.search(r'[\u4e00-\u9fff]', text) is not None
@@ -35,6 +40,19 @@ def speechToText(audio_path, model_size="base"):
     print(result['text'])
     
     return result['text']
+
+
+def transcribe_audio_to_file(audio_path, output_text_path=None, model_size="base", encoding="utf-8"):
+    if output_text_path is None:
+        output_text_path = build_transcript_output_path(audio_path)
+
+    text = speechToText(audio_path, model_size=model_size)
+    with open(output_text_path, "w", encoding=encoding) as file_obj:
+        file_obj.write(text.strip())
+        file_obj.write("\n")
+
+    print(f"文本提取成功，已保存至：{output_text_path}")
+    return output_text_path
 
 
 

@@ -101,8 +101,9 @@ def download_youtube_video(video_url, title, save_dir="./", proxy=None):
     try:
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=True)
-
+        print(save_dir, safe_title)
         downloaded_files = sorted(glob.glob(os.path.join(save_dir, f"{safe_title}.*")))
+        print(downloaded_files)
         if not downloaded_files:
             print(f"下载失败 {title}: 未找到下载后的文件")
             return None

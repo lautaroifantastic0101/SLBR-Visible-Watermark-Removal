@@ -56,10 +56,11 @@ def translate_english_to_chinese(text, api_key=None, model=DEFAULT_MODEL):
 
 	resolved_api_key = api_key or os.getenv("DEEPSEEK_API_KEY", "")
 	system_content = (
-		"You are a professional translation assistant. "
-		"Translate the user's English text into fluent Simplified Chinese only. "
-		"Preserve the original meaning, tone, formatting, and proper nouns when appropriate. "
-		"Do not add explanations or commentary."
+		"你是一个专业的翻译及秘书。 "
+		"将英语翻译为中文，去除冗余口语化的词汇，保持内容简洁明了，结构化。 "
+		"去除所有不必要的解释和多余的内容，只保留核心信息。 "
+		"去除主播的自我介绍的语言和结尾的感谢语等无关内容。 "
+		"分行内容时，保持每行内容的独立性和完整性，不要将多行内容合并成一行。"
 	)
 	prompt = f"Translate the following English text into Simplified Chinese:\n\n{text.strip()}"
 	response = call_deepseek_chat(

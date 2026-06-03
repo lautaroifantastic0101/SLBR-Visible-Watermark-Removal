@@ -284,63 +284,94 @@ def write_markdown(s3_client, composed_notes, output_file, deepseek_api_key=None
 
 
 def parse_markdown_sections(markdown_text):
-        raw_sections = [section.strip() for section in re.split(r'\n\s*---\s*\n', markdown_text) if section.strip()]
-        sections = []
+    raw_sections = [section.strip() for section in re.split(r'\n\s*---\s*\n', markdown_text) if section.strip()]
+    sections = []
 
-        for raw_section in raw_sections:
-                lines = raw_section.splitlines()
-                title = 'Untitled'
-                blocks = []
-                paragraph_lines = []
+    for raw_section in raw_sections:
+        lines = raw_section.splitlines()
+        title = 'Untitled'
+        blocks = []
+        paragraph_lines = []
+        in_code_block = False
+        code_lines = []
+        code_language = ''
 
-                def flush_paragraph():
-                        if paragraph_lines:
-                                paragraph_text = ' '.join(line.strip() for line in paragraph_lines if line.strip())
-                                if paragraph_text:
-                                        blocks.append({'type': 'paragraph', 'text': paragraph_text})
-                                paragraph_lines.clear()
+        def flush_paragraph():
+            if paragraph_lines:
+                paragraph_text = ' '.join(line.strip() for line in paragraph_lines if line.strip())
+                if paragraph_text:
+                    blocks.append({'type': 'paragraph', 'text': paragraph_text})
+                paragraph_lines.clear()
 
-                for line in lines:
-                        stripped_line = line.strip()
-                        if not stripped_line:
-                                flush_paragraph()
-                                continue
+        def flush_code_block():
+            if code_lines:
+                blocks.append(
+                    {
+                        'type': 'code',
+                        'language': code_language,
+                        'text': '\n'.join(code_lines).rstrip(),
+                    }
+                )
+                code_lines.clear()
 
-                        if stripped_line.startswith('# '):
-                                flush_paragraph()
-                                title = stripped_line[2:].strip() or title
-                                continue
+        for line in lines:
+            stripped_line = line.strip()
 
-                        image_match = re.match(r'!\[(?P<alt>[^\]]*)\]\((?P<src>[^)]+)\)', stripped_line)
-                        if image_match:
-                                flush_paragraph()
-                                blocks.append(
-                                        {
-                                                'type': 'image',
-                                                'alt': image_match.group('alt').strip() or title,
-                                                'src': image_match.group('src').strip(),
-                                        }
-                                )
-                                continue
-
-                        heading_match = re.match(r'(?P<level>#{2,6})\s+(?P<text>.+)', stripped_line)
-                        if heading_match:
-                                flush_paragraph()
-                                blocks.append(
-                                        {
-                                                'type': 'heading',
-                                                'level': len(heading_match.group('level')),
-                                                'text': heading_match.group('text').strip(),
-                                        }
-                                )
-                                continue
-
-                        paragraph_lines.append(stripped_line)
-
+            if stripped_line.startswith('```'):
                 flush_paragraph()
-                sections.append({'title': title, 'blocks': blocks})
+                if in_code_block:
+                    flush_code_block()
+                    in_code_block = False
+                    code_language = ''
+                else:
+                    in_code_block = True
+                    code_language = stripped_line[3:].strip()
+                continue
 
-        return sections
+            if in_code_block:
+                code_lines.append(line.rstrip())
+                continue
+
+            if not stripped_line:
+                flush_paragraph()
+                continue
+
+            if stripped_line.startswith('# '):
+                flush_paragraph()
+                title = stripped_line[2:].strip() or title
+                continue
+
+            image_match = re.match(r'!\[(?P<alt>[^\]]*)\]\((?P<src>[^)]+)\)', stripped_line)
+            if image_match:
+                flush_paragraph()
+                blocks.append(
+                    {
+                        'type': 'image',
+                        'alt': image_match.group('alt').strip() or title,
+                        'src': image_match.group('src').strip(),
+                    }
+                )
+                continue
+
+            heading_match = re.match(r'(?P<level>#{2,6})\s+(?P<text>.+)', stripped_line)
+            if heading_match:
+                flush_paragraph()
+                blocks.append(
+                    {
+                        'type': 'heading',
+                        'level': len(heading_match.group('level')),
+                        'text': heading_match.group('text').strip(),
+                    }
+                )
+                continue
+
+            paragraph_lines.append(stripped_line)
+
+        flush_paragraph()
+        flush_code_block()
+        sections.append({'title': title, 'blocks': blocks})
+
+    return sections
 
 
 def build_page_component(sections, note_title=None):
@@ -348,7 +379,8 @@ def build_page_component(sections, note_title=None):
         return f"""type Block =
     | {{ type: 'paragraph'; text: string }}
     | {{ type: 'image'; alt: string; src: string }}
-    | {{ type: 'heading'; level: number; text: string }};
+    | {{ type: 'heading'; level: number; text: string }}
+    | {{ type: 'code'; language: string; text: string }};
 
 type Section = {{
     title: string;
@@ -397,6 +429,21 @@ export default function Page() {{
                                             alt={{block.alt}}
                                             className="w-full rounded-2xl border border-slate-200 object-cover shadow-sm"
                                         />
+                                    );
+                                }}
+
+                                if (block.type === 'code') {{
+                                    return (
+                                        <div key={{blockIndex}} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm">
+                                            {{block.language ? (
+                                                <div className="border-b border-slate-800 bg-slate-900 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                                                    {{block.language}}
+                                                </div>
+                                            ) : null}}
+                                            <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-slate-100">
+                                                <code>{{block.text}}</code>
+                                            </pre>
+                                        </div>
                                     );
                                 }}
 
@@ -490,6 +537,64 @@ def generate_chaps(path_to_note, output_chap_txt_fp, deepseek_api_key=None):
     return output_path
 
 
+def generate_note_title(composed_notes_fp, fallback_title, deepseek_api_key=None):
+    if not deepseek_api_key:
+        return fallback_title
+
+    if not os.path.exists(composed_notes_fp):
+        print(f"Composed notes file not found: {composed_notes_fp}")
+        return fallback_title
+
+    try:
+        with open(composed_notes_fp, 'r', encoding='utf-8') as file:
+            composed_notes = json.load(file)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"Failed to load composed notes for title generation: {exc}")
+        return fallback_title
+
+    note_summaries = []
+    for note in composed_notes[:5]:
+        title = note.get('json_title', '').strip()
+        content = note.get('json_content', '').strip()
+        preview = content[:180]
+        if title or preview:
+            note_summaries.append(f"标题: {title}\n内容摘要: {preview}")
+
+    if not note_summaries:
+        return fallback_title
+
+    system_content = (
+        "你是一个专业的中文编辑。"
+        "请根据文章章节信息生成一个适合文章发布的中文标题。"
+        "只返回标题本身，不要解释，不要加引号，不要加序号。"
+    )
+    prompt = (
+        "请基于下面的笔记章节信息，为整篇文章生成一个简洁、自然、适合发布的中文标题。\n\n"
+        "要求:\n"
+        "1. 标题必须是中文。\n"
+        "2. 标题长度控制在 8 到 24 个汉字左右。\n"
+        "3. 不要出现书名号、引号、冒号或多余说明。\n"
+        "4. 如果内容是教程或介绍，标题应准确概括主题。\n\n"
+        f"候选默认标题: {fallback_title}\n\n"
+        f"章节信息:\n\n{'\n\n'.join(note_summaries)}"
+    )
+
+    try:
+        response = call_deepseek_chat(
+            api_key=deepseek_api_key,
+            prompt=prompt,
+            system_content=system_content,
+        )
+        parsed = parse_deepseek_response(response)
+        generated_title = parsed.get('content', '').strip().splitlines()[0].strip()
+    except Exception as exc:
+        print(f"Failed to generate note title with DeepSeek: {exc}")
+        return fallback_title
+
+    generated_title = re.sub(r'^["\'《【\[]+|["\'》】\]]+$', '', generated_title).strip()
+    return generated_title or fallback_title
+
+
 def main(path_to_note, deepseek_api_key=None):
     print("Welcome to Note Composer!")
     print("This is a simple CLI tool to help you compose notes.")
@@ -563,8 +668,8 @@ def note_composer_to_markdown_main(file_path, r2_account_id, r2_access_key_id, r
 
 
 def note_markdown_to_pagetsx_main(markdown_fp, output_fp=None, note_title=None):
-        output_fp, section_count = write_page_tsx(markdown_fp, output_fp, note_title)
-        print(f'Generated {output_fp} from {markdown_fp} with {section_count} sections.')
+    output_fp, section_count = write_page_tsx(markdown_fp, output_fp, note_title)
+    print(f'Generated {output_fp} from {markdown_fp} with {section_count} sections.')
 
 
 def parse_args():
@@ -593,7 +698,16 @@ if __name__ == "__main__":
         args.BUCKET_NAME,
         deepseek_api_key=args.deepseek_api_key,
     )
+
+    fallback_note_title = os.path.splitext(os.path.basename(os.path.normpath(fp)))[0]
+    note_title = args.note_title if args.note_title else generate_note_title(
+        os.path.join(fp, "composed_notes.json"),
+        fallback_note_title,
+        deepseek_api_key=args.deepseek_api_key,
+    )
+
+
     note_markdown_to_pagetsx_main(
         os.path.join(fp, "composed_notes.md"),
-        note_title=args.note_title or os.path.basename(os.path.normpath(fp)),
+        note_title=note_title,
     )
