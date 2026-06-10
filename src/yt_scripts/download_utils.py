@@ -30,6 +30,71 @@ def _build_requests_proxies(proxy=None):
         "https": proxy_url,
     }
 
+
+def _sanitize_media_title(title, default_title):
+    safe_title = re.sub(r'[\\/:*?"<>|]', '', title).strip()[:50]
+    return safe_title or default_title
+
+
+def _download_video_with_ytdlp(video_url, title, save_dir="./", proxy=None, default_title="video", source_label="视频"):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    safe_title = _sanitize_media_title(title, default_title)
+    output_template = os.path.join(save_dir, f"{safe_title}.%(ext)s")
+
+    try:
+        YoutubeDL = importlib.import_module("yt_dlp").YoutubeDL
+    except ImportError:
+        print(f"下载{source_label}失败: 缺少依赖 yt-dlp，请先安装 requirements.txt 中的依赖。")
+        return None
+
+    ydl_opts = {
+        "outtmpl": output_template,
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "merge_output_format": "mp4",
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+    }
+
+    proxy_url = _resolve_proxy(proxy)
+    if proxy_url:
+        ydl_opts["proxy"] = proxy_url
+
+    info = None
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(video_url, download=True)
+
+        downloaded_files = sorted(glob.glob(os.path.join(save_dir, f"{safe_title}.*")))
+        if not downloaded_files:
+            print(f"下载失败 {title}: 未找到下载后的文件")
+            return None
+
+        preferred_path = None
+        for path in downloaded_files:
+            if path.lower().endswith(".mp4"):
+                preferred_path = path
+                break
+
+        save_path = preferred_path or downloaded_files[-1]
+        print(f"下载成功: {os.path.basename(save_path)}")
+        return save_path
+    except Exception as e:
+        video_id = info.get("id") if isinstance(info, dict) else None
+        if video_id:
+            partial_files = glob.glob(os.path.join(save_dir, f"*{video_id}*"))
+            for partial_file in partial_files:
+                if os.path.isfile(partial_file):
+                    try:
+                        os.remove(partial_file)
+                    except OSError:
+                        pass
+
+        print(f"下载失败 {title}: {e}")
+        return None
+
 def download_douyin_video(video_url, title, save_dir="./", proxy=None):
     """
     video_url: 视频的真实播放地址 (play_addr)
@@ -70,65 +135,31 @@ def download_youtube_video(video_url, title, save_dir="./", proxy=None):
     title: 视频标题，将作为文件名
     proxy: 可选代理地址，例如 http://127.0.0.1:7890
     """
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    return _download_video_with_ytdlp(
+        video_url,
+        title,
+        save_dir=save_dir,
+        proxy=proxy,
+        default_title="youtube_video",
+        source_label="YouTube 视频",
+    )
 
-    safe_title = re.sub(r'[\\/:*?"<>|]', '', title).strip()[:50]
-    if not safe_title:
-        safe_title = "youtube_video"
 
-    output_template = os.path.join(save_dir, f"{safe_title}.%(ext)s")
-
-    try:
-        YoutubeDL = importlib.import_module("yt_dlp").YoutubeDL
-    except ImportError:
-        print("下载 YouTube 视频失败: 缺少依赖 yt-dlp，请先安装 requirements.txt 中的依赖。")
-        return None
-
-    ydl_opts = {
-        "outtmpl": output_template,
-        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-        "merge_output_format": "mp4",
-        "noplaylist": True,
-        "quiet": True,
-        "no_warnings": True,
-    }
-
-    proxy_url = _resolve_proxy(proxy)
-    if proxy_url:
-        ydl_opts["proxy"] = proxy_url
-
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(video_url, download=True)
-        print(save_dir, safe_title)
-        downloaded_files = sorted(glob.glob(os.path.join(save_dir, f"{safe_title}.*")))
-        print(downloaded_files)
-        if not downloaded_files:
-            print(f"下载失败 {title}: 未找到下载后的文件")
-            return None
-
-        preferred_path = None
-        for path in downloaded_files:
-            if path.lower().endswith(".mp4"):
-                preferred_path = path
-                break
-
-        save_path = preferred_path or downloaded_files[-1]
-        print(f"下载成功: {os.path.basename(save_path)}")
-        return save_path
-    except Exception as e:
-        video_id = info.get("id") if isinstance(locals().get("info"), dict) else None
-        if video_id:
-            partial_files = glob.glob(os.path.join(save_dir, f"*{video_id}*"))
-            for partial_file in partial_files:
-                if os.path.isfile(partial_file):
-                    try:
-                        os.remove(partial_file)
-                    except OSError:
-                        pass
-
-        print(f"下载失败 {title}: {e}")
-        return None
+def download_bilibili_video(video_url, title, save_dir="./", proxy=None):
+    """
+    video_url: Bilibili 视频地址
+    title: 视频标题，将作为文件名
+    proxy: 可选代理地址，例如 http://127.0.0.1:7890
+    """
+    return _download_video_with_ytdlp(
+        video_url,
+        title,
+        save_dir=save_dir,
+        proxy=proxy,
+        default_title="bilibili_video",
+        source_label="Bilibili 视频",
+    )
  
+
+
 

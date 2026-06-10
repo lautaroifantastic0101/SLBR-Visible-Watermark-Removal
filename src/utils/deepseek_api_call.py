@@ -73,6 +73,27 @@ def translate_english_to_chinese(text, api_key=None, model=DEFAULT_MODEL):
 	return parsed["content"]
 
 
+
+def summarize_text_in_english(text, api_key=None, model=DEFAULT_MODEL):
+	"""Summarize input text into concise English with DeepSeek."""
+	if not text or not text.strip():
+		return ""
+
+	resolved_api_key = api_key or os.getenv("DEEPSEEK_API_KEY", "")
+	system_content = (
+		"You are a professional summarizer. "
+		"Summarize the following text into concise and clear English, removing any redundant or unnecessary information while retaining the core meaning and key points."
+	)
+	prompt = f"Summarize the following text in English:\n\n{text.strip()}"
+	response = call_deepseek_chat(
+		api_key=resolved_api_key,
+		prompt=prompt,
+		system_content=system_content,
+		model=model,
+	)
+	parsed = parse_deepseek_response(response)
+	return parsed["content"]
+
 def parse_args():
 	parser = argparse.ArgumentParser(description="Translate English text to Simplified Chinese with DeepSeek API.")
 	parser.add_argument("text", nargs="?", default="", help="English text to translate.")

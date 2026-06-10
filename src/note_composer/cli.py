@@ -2,12 +2,14 @@ import argparse
 import json
 import os
 import re
+from datetime import date
 from utils.parse_imgs_zip_upload import upload_file
 import boto3
 from utils.deepseek_api_call import (
     call_deepseek_chat,
     parse_deepseek_response,
     translate_english_to_chinese,
+    summarize_text_in_english,
 )
 
 def normalize_text(text):
@@ -256,34 +258,71 @@ def open_frame_picture(s3_client, frame_index, pic_frame_outputpath):
     # D:\toolnotes_pro\docs\robloxstudio\1_robloxstudio_introduction_and_download\output\frames\frame_0.jpg
     
 
+def _build_markdown_description(text, max_length=160):
+    compact_text = re.sub(r'\s+', ' ', text).strip()
+    if len(compact_text) <= max_length:
+        return compact_text
+    return f"{compact_text[:max_length].rstrip()}..."
 
-def write_markdown(s3_client, composed_notes, output_file, deepseek_api_key=None):
-    # pic_frame_outputpath = os.path.join(os.path.dirname(output_file), "frames")
 
-    with open(output_file, 'w', encoding='utf-8') as f:
-        for note in composed_notes:
-            title = note.get('json_title', 'N/A')
-            content = note.get('json_content', 'N/A')
-            frames = note.get('frames', [])
-            if deepseek_api_key is None:
-                translated_content = content
-                translated_title = title
-            else:
+def _strip_markdown_frontmatter(markdown_text):
+    if not markdown_text.startswith('---'):
+        return markdown_text
+
+    frontmatter_match = re.match(r'^---\s*\n.*?\n---\s*\n?', markdown_text, re.DOTALL)
+    if frontmatter_match is None:
+        return markdown_text
+
+    return markdown_text[frontmatter_match.end():]
+
+
+def write_markdown(s3_client, composed_notes, output_file, deepseek_api_key=None, author='Author', locale='en'):
+    rendered_notes = []
+    for note in composed_notes:
+        title = note.get('json_title', 'N/A')
+        content = note.get('json_content', 'N/A')
+        frames = note.get('frames', [])
+        if deepseek_api_key is None:
+            translated_content = content
+            translated_title = title
+        else:
+            if locale.startswith('en'):
+                translated_content = summarize_text_in_english(content, api_key=deepseek_api_key)
+                translated_title = summarize_text_in_english(title, api_key=deepseek_api_key)
+            elif locale.startswith('zh'):
                 translated_content = translate_english_to_chinese(content, api_key=deepseek_api_key)
                 translated_title = translate_english_to_chinese(title, api_key=deepseek_api_key)
-            
-            if frames and len(frames) > 0:
-                r2_key = open_frame_picture(s3_client, frames[0], os.path.dirname(output_file))
-                if r2_key:
-                    translated_content += f"\n\n![Frame Image]({r2_key})\n\n"
 
-            f.write(f"# {translated_title}\n\n")
-            f.write(f"{translated_content}\n\n")
+        if frames and len(frames) > 0:
+            r2_key = open_frame_picture(s3_client, frames[0], os.path.dirname(output_file))
+            if r2_key:
+                translated_content += f"\n\n![Frame Image]({r2_key})\n\n"
+
+        rendered_notes.append({'title': translated_title, 'content': translated_content})
+
+    fallback_title = os.path.splitext(os.path.basename(output_file))[0]
+    markdown_title = rendered_notes[0]['title'] if rendered_notes else fallback_title
+    markdown_description = _build_markdown_description(
+        rendered_notes[0]['content'] if rendered_notes else fallback_title
+    )
+    published_at = date.today().isoformat()
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("---\n")
+        f.write(f"title: {json.dumps(markdown_title, ensure_ascii=False)}\n")
+        f.write(f"description: {json.dumps(markdown_description, ensure_ascii=False)}\n")
+        f.write(f"author: {json.dumps(author, ensure_ascii=False)}\n")
+        f.write(f"publishedAt: {published_at}\n")
+        f.write("---\n\n")
+
+        for rendered_note in rendered_notes:
+            f.write(f"# {rendered_note['title']}\n\n")
+            f.write(f"{rendered_note['content']}\n\n")
             f.write("\n---\n\n")
 
 
-
 def parse_markdown_sections(markdown_text):
+    markdown_text = _strip_markdown_frontmatter(markdown_text)
     raw_sections = [section.strip() for section in re.split(r'\n\s*---\s*\n', markdown_text) if section.strip()]
     sections = []
 
@@ -374,103 +413,121 @@ def parse_markdown_sections(markdown_text):
     return sections
 
 
-def build_page_component(sections, note_title=None):
-        sections_json = json.dumps(sections, ensure_ascii=False, indent=2)
-        return f"""type Block =
-    | {{ type: 'paragraph'; text: string }}
-    | {{ type: 'image'; alt: string; src: string }}
-    | {{ type: 'heading'; level: number; text: string }}
-    | {{ type: 'code'; language: string; text: string }};
+def parse_markdown_meta(markdown_text):
+    # Try to extract YAML-like frontmatter between leading '---' blocks.
+    meta = {'title': None, 'description': None, 'author': None, 'publishedAt': None}
 
-type Section = {{
-    title: string;
-    blocks: Block[];
-}};
+    fm_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', markdown_text, re.DOTALL)
+    if fm_match:
+        fm = fm_match.group(1)
+        for line in fm.splitlines():
+            m = re.match(r'^\s*(?P<key>[^:]+)\s*:\s*(?P<val>.*)$', line)
+            if not m:
+                continue
+            key = m.group('key').strip()
+            val = m.group('val').strip()
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                val = val[1:-1]
+            key_low = key.lower()
+            if key_low == 'title':
+                meta['title'] = val
+            elif key_low == 'description':
+                meta['description'] = val
+            elif key_low == 'author':
+                meta['author'] = val
+            elif key_low in ('publishedat', 'published_at', 'published'):
+                meta['publishedAt'] = val
+        return meta
 
-const sections: Section[] = {sections_json};
-const noteTitle: string = {json.dumps(note_title, ensure_ascii=False)};
+    # Fallback: look for the first top-level heading as title
+    head_match = re.search(r'^#\s+(.*)', markdown_text, re.MULTILINE)
+    if head_match:
+        meta['title'] = head_match.group(1).strip()
 
-
-function renderHeading(level: number, text: string) {{
-    if (level === 2) {{
-        return <h2 className="mt-8 text-2xl font-semibold text-slate-900">{{text}}</h2>;
-    }}
-
-    if (level === 3) {{
-        return <h3 className="mt-6 text-xl font-semibold text-slate-900">{{text}}</h3>;
-    }}
-
-    return <h4 className="mt-4 text-lg font-semibold text-slate-900">{{text}}</h4>;
-}}
-
-export default function Page() {{
-    return (
-        <main className="min-h-screen bg-slate-50 px-6 py-12 text-slate-800">
-            <h1 className="text-4xl font-bold tracking-tight text-slate-950 mb-8">{{noteTitle}}</h1>
-
-            <div className="mx-auto flex max-w-4xl flex-col gap-8">
-                {{sections.map((section, sectionIndex) => (
-                    <article
-                        key={{`${{section.title}}-${{sectionIndex}}`}}
-                        className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm"
-                    >
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-950">{{section.title}}</h1>
-                        <div className="mt-6 space-y-4 leading-8 text-slate-700">
-                            {{section.blocks.map((block, blockIndex) => {{
-                                if (block.type === 'paragraph') {{
-                                    return <p key={{blockIndex}}>{{block.text}}</p>;
-                                }}
-
-                                if (block.type === 'image') {{
-                                    return (
-                                        <img
-                                            key={{blockIndex}}
-                                            src={{`${{process.env.NEXT_PUBLIC_CLOUDFLARE_R2_HOST}}/${{block.src}}`}}
-                                            alt={{block.alt}}
-                                            className="w-full rounded-2xl border border-slate-200 object-cover shadow-sm"
-                                        />
-                                    );
-                                }}
-
-                                if (block.type === 'code') {{
-                                    return (
-                                        <div key={{blockIndex}} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm">
-                                            {{block.language ? (
-                                                <div className="border-b border-slate-800 bg-slate-900 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-                                                    {{block.language}}
-                                                </div>
-                                            ) : null}}
-                                            <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-slate-100">
-                                                <code>{{block.text}}</code>
-                                            </pre>
-                                        </div>
-                                    );
-                                }}
-
-                                return <div key={{blockIndex}}>{{renderHeading(block.level, block.text)}}</div>;
-                            }})}}
-                        </div>
-                    </article>
-                ))}}
-            </div>
-        </main>
-    );
-}}
-"""
+    return meta
 
 
-def write_page_tsx(markdown_fp, output_fp=None, note_title=None):
-        with open(markdown_fp, 'r', encoding='utf-8') as file:
-                markdown_text = file.read()
+def build_page_component(sections, note_meta=None):
+    sections_json = json.dumps(sections, ensure_ascii=False, indent=2)
+    note_title = note_meta.get('title') if note_meta else None
+    note_author = note_meta.get('author') if note_meta else None
+    note_description = note_meta.get('description') if note_meta else None
+    note_published_at = note_meta.get('publishedAt') if note_meta else None
 
-        sections = parse_markdown_sections(markdown_text)
-        output_fp = output_fp or os.path.join(os.path.dirname(markdown_fp), 'page.tsx')
-        page_component = build_page_component(sections, note_title)
+    # Try to load an external TSX template and replace data placeholders.
+    template_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'config', 'page_template.txt'))
+    try:
+        with open(template_path, 'r', encoding='utf-8') as tplf:
+            tpl = tplf.read()
 
-        with open(output_fp, 'w', encoding='utf-8') as file:
-                file.write(page_component)
+        # Replace sections array
+        tpl = re.sub(
+            r"(const\s+sections\s*:\s*Section\[\]\s*=\s*)(\[[\s\S]*?\])\s*;",
+            lambda m: m.group(1) + sections_json + ';',
+            tpl,
+            flags=re.MULTILINE,
+        )
 
-        return output_fp, len(sections)
+        # Replace metadata fields if present
+        tpl = re.sub(r"const\s+noteTitle\s*:\s*string\s*=\s*.*;",
+                     f"const noteTitle: string = {json.dumps(note_title, ensure_ascii=False)};",
+                     tpl)
+        tpl = re.sub(r"const\s+noteAuthor\s*:\s*string\s*=\s*.*;",
+                     f"const noteAuthor: string = {json.dumps(note_author, ensure_ascii=False)};",
+                     tpl)
+        tpl = re.sub(r"const\s+noteDescription\s*:\s*string\s*=\s*.*;",
+                     f"const noteDescription: string = {json.dumps(note_description, ensure_ascii=False)};",
+                     tpl)
+        # Support both notePublishedAt or publishedDate
+        tpl = re.sub(r"const\s+notePublishedAt\s*:\s*string\s*=\s*.*;",
+                     f"const notePublishedAt: string = {json.dumps(note_published_at, ensure_ascii=False)};",
+                     tpl)
+        tpl = re.sub(r"const\s+publishedDate\s*:\s*string\s*=\s*.*;",
+                     f"const publishedDate: string = {json.dumps(note_published_at, ensure_ascii=False)};",
+                     tpl)
+
+        return tpl
+    except Exception:
+        # Fallback: generate a basic TSX component inline
+        sections_json_inline = sections_json
+        note_title_js = json.dumps(note_title, ensure_ascii=False)
+        note_author_js = json.dumps(note_author, ensure_ascii=False)
+        note_description_js = json.dumps(note_description, ensure_ascii=False)
+        note_published_js = json.dumps(note_published_at, ensure_ascii=False)
+
+        return (
+            "import { Metadata } from \"next\";\n\n"
+            f"const sections = {sections_json_inline};\n"
+            f"const noteTitle: string = {note_title_js};\n"
+            f"const noteAuthor: string = {note_author_js};\n"
+            f"const noteDescription: string = {note_description_js};\n"
+            f"const notePublishedAt: string = {note_published_js};\n\n"
+            "export default function Page() {\n"
+            "  return (\n"
+            "    <main>\n"
+            "      <h1>{noteTitle}</h1>\n"
+            "    </main>\n"
+            "  );\n"
+            "}\n"
+        )
+
+def write_page_tsx(markdown_fp, output_fp=None):
+    """
+    输入 markdown_fp 文件；
+    """
+    print(f"Converting markdown file {markdown_fp} to page.tsx, output_fp: {output_fp}...")
+    with open(markdown_fp, 'r', encoding='utf-8') as file:
+            markdown_text = file.read()
+
+    sections = parse_markdown_sections(markdown_text)
+    note_meta = parse_markdown_meta(markdown_text)
+    output_fp = output_fp or os.path.join(os.path.dirname(markdown_fp), 'page.tsx')
+    page_component = build_page_component(sections, note_meta)
+
+    with open(output_fp, 'w', encoding='utf-8') as file:
+            file.write(page_component)
+
+    return output_fp, len(sections)
 
 
 def generate_chaps(path_to_note, output_chap_txt_fp, deepseek_api_key=None):
@@ -595,7 +652,7 @@ def generate_note_title(composed_notes_fp, fallback_title, deepseek_api_key=None
     return generated_title or fallback_title
 
 
-def main(path_to_note, deepseek_api_key=None):
+def video_analysis_result_to_composed_json(path_to_note, deepseek_api_key=None):
     print("Welcome to Note Composer!")
     print("This is a simple CLI tool to help you compose notes.")
     print("You can create, edit, and save your notes easily.")
@@ -621,7 +678,7 @@ def main(path_to_note, deepseek_api_key=None):
 
 
 
-def note_composer_to_markdown_main(file_path, r2_account_id, r2_access_key_id, r2_secret_access_key, BUCKET_NAME, deepseek_api_key=None):
+def note_composer_to_markdown_main(output_md_file_name, file_path, r2_account_id, r2_access_key_id, r2_secret_access_key, BUCKET_NAME, deepseek_api_key=None, author='Author'):
 
     # parser = argparse.ArgumentParser(description="转化文档")
     # args_cli = parser.parse_args()
@@ -663,12 +720,14 @@ def note_composer_to_markdown_main(file_path, r2_account_id, r2_access_key_id, r
     # current_dir = Path(__file__).resolve().parent
     last_folder = os.path.basename(os.path.dirname(file_path))
     print(f"Current directory: {last_folder}")
-    write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), "composed_notes.md"), deepseek_api_key=deepseek_api_key)
+
+    write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), f"zh_{output_md_file_name}"), deepseek_api_key=deepseek_api_key, author=author, locale='zh')
+    write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), f"en_{output_md_file_name}"), deepseek_api_key=deepseek_api_key, author=author, locale='en')
 
 
 
-def note_markdown_to_pagetsx_main(markdown_fp, output_fp=None, note_title=None):
-    output_fp, section_count = write_page_tsx(markdown_fp, output_fp, note_title)
+def note_markdown_to_pagetsx_main(markdown_fp, output_fp=None):
+    output_fp, section_count = write_page_tsx(markdown_fp, output_fp)
     print(f'Generated {output_fp} from {markdown_fp} with {section_count} sections.')
 
 
@@ -689,7 +748,7 @@ if __name__ == "__main__":
     args = parse_args()
     fp = args.fp
 
-    main(fp, deepseek_api_key=args.deepseek_api_key)
+    video_analysis_result_to_composed_json(fp, deepseek_api_key=args.deepseek_api_key)
     note_composer_to_markdown_main(
         os.path.join(fp, "composed_notes.json"),
         args.r2_account_id,

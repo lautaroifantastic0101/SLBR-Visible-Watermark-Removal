@@ -1,0 +1,246 @@
+import { getAvatarUrlByAuthorName } from '../../../../configs/AuthorConfigs';
+
+type Block =
+    | { type: 'paragraph'; text: string }
+    | { type: 'image'; alt: string; src: string }
+    | { type: 'heading'; level: number; text: string }
+    | { type: 'code'; language: string; text: string };
+
+type Section = {
+    title: string;
+    blocks: Block[];
+};
+
+const sections: Section[] = [
+  {
+    "title": "第1部分：引言与背景",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "以下是23种你可能从未听过的AI使用方法，因为大多数人只利用了AI潜力的冰山一角。过去三年，我运营了多家AI公司，身处AI前沿，可以告诉你，大多数人仅触及了皮毛。在本视频中，我将展示23种新方式，让你通过AI在生活的各个方面开启简单模式。"
+      },
+      {
+        "type": "image",
+        "alt": "Frame Image",
+        "src": "notetool/23 Ways to Use ChatGPT So Well it Feels Like Cheat/frames/frame_0.jpg"
+      }
+    ]
+  },
+  {
+    "title": "第2部分：23个人工智能应用案例",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "第一条，终身提示词。目标是创建一个生活提示词，集合你的价值观、目标、弱点、原则和生活细节。这样每次问AI时，它都会通过你的视角回答。操作方法：对ChatGPT说“帮我创建一个人生提示词，并问我问题以了解我的生活背景”。它会提问，你回答后保存为PDF。以后问AI时，先上传这个PDF，它就拥有了所有背景信息。这就是你的终身提示词。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第二条，隐藏真相镜。AI对大多数人的最大机会是发现你自己都没意识到的盲点和特质。操作方法：打开AI（我喜欢ChatGPT），输入你的日记、博客、内容等各种信息，然后问“告诉我一个我自己都没看到的独特之处”。如果你经常用ChatGPT，它其实已经知道这些。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第三条，写未存在的书。你崇拜的人可能谈论过某个话题但从未出书。比如莎拉·布雷克里谈育儿，或野兽先生谈如何扩张媒体公司。操作方法：让ChatGPT学习这些人的访谈、播客和所有内容，然后基于最佳书籍大纲实践，生成章节、框架和清单，提取所有引语，避免虚构。它会为你写出这本书。如果你想要我写的生成任何话题书籍的提示词，点击下方链接下载。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第四条，决策日记。用AI追踪选择并事后复盘，以改进决策质量。操作方法：将所有重大决策及其预期结果记录到ChatGPT中，并让它挑战你的思维。注意：多数AI默认很顺从，必须明确要求它挑战你。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第五条，AI摄像机法。你可以录制自己做某事的杂乱视频，然后让AI生成可复用的检查清单或标准操作流程。操作方法：将你自己做某事的原始笔记或视频转录文本粘贴给ChatGPT，要求生成一页检查清单，包含所有陷阱和提醒。它会创建更好的系统文档，可供他人重复执行。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第六条，目标分解为行动。多数人有愿景但没计划，因为从未做过。用AI帮你制定计划。操作方法：告诉ChatGPT你的目标，要求设计一个30-60-90天的路线图，包含行动项，它会为你构建。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第七条，可视化梦想。不用花时间找图或Photoshop，让AI生成愿景板，包含你生活中想要的一切。操作方法：将上一步的目标告诉AI，让它生成你实现目标后的生活图像，每天看，感受成功能量。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第八条，自动储蓄投资计划。在没有动力时自动化财富积累，让AI给你计划。操作方法：让ChatGPT根据你的具体情况起草“先支付给自己”的日程和银行规则，用于应急基金和债务投资。多数富人顾问其实也没钱给你做计划，AI能更清晰、具体地给出适合你的方案。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第九条，税收抵扣发现器。先咨询专业人士，但用AI捕捉大多数人忽略的抵扣、信贷和资助机会，可帮你拿回更多钱。操作方法：上传所有支出，让ChatGPT根据你的情况标记可能的抵扣项，建立月度追踪清单，并询问你可能符合的资助。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十条，个人顾问团。进步生活的最强策略之一是“智囊团”或导师团概念。问题在于很多人不可及。AI能帮你构建，即使他们已故。第一部分：让ChatGPT列出已实现你目标的人，帮你建立名单。然后让它以这些人的身份在自定义GPT中回答关于顺序、决策或结构的问题，基于AI对这些人在生活中如何决策的最佳猜测。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十一条，未来自我信件。接收未来自己的来信以保持动力。操作方法：设定90天或365天，每月可发送一次。它会写出预测你当前目标进展中可能感受的信件，持续激励你。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十二条，情境感知记忆库。让AI成为你的第二大脑。创建项目文件夹，把所有信息（银行账户、当前投资、与你价值观一致的参考书等）放入。然后让它基于你的生活背景帮你做决策。这样它就像第二大脑，能根据你分享的信息调用相关洞见。当你要做新决策时，它拥有你当前生活的所有信息，加上新信息，比如“现在我有孩子了，该如何调整投资思路？”它就会给答案。我用项目文件夹管理一切：投资、公司、甚至购买新房产。太酷了。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十三条，即时学习路径。学习是核心技能。太多人忙着学无关的东西。如果你想学AI，让ChatGPT规划出最重要的20%课程，跳过所有冗余。这样就是一条精简的、基于你当前需求的即时学习路径。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十四条，会议助手。我写了《买回你的时间》一书，所以对助手类工具很兴奋。我用AI将所有会议转化为资产而非时间黑洞。比如，上传会议录音（最好通过Zoom），让AI提取笔记并告诉你要做什么。听起来疯狂？我的团队成员Optin戴着AI徽章（Limitless的项链），实时工作：开会时自动总结，告诉他待办事项。实时、一直工作。有点高级，但先试试获取录音并让AI转录。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十五条，风险评估。让AI评估业务或生活决策的风险。我常这么做：用语音应用，边散步边通过耳机对AI说我的生活背景和情境。前几天我做重大业务重组决策，给了AI所有人员、业务规模、团队成员，它给出了我不敢做的决定。我说“说服我”，它列出了利弊。这就是决策。关键是用来减轻风险。之后你可以问“告诉我这个决策的所有风险”，以理解真正在做什么。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十六条，信息润色器。我身边有两个人：一个不爱说话，一个话太多。我教他们创建自定义GPT，对前者添加内容或提问，对后者精简。设置方法：打开GPT，点击麦克风按钮，说“我要说一段很直接愤怒的话，请改写得更温和、友善但依然直接”。比如“嘿兄弟，你为啥还没给我2026年目标？”它会改成“你好，我注意到还没收到2026年目标，方便时请发给我。”依然直接但更友善。很多人该用这个。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十七条，旅行规划师。用AI规划旅行是利器，避免不知所措。给它日期、预算、偏好，要求一个包含隐藏宝藏和必看景点的五站计划。我们正在为期九个月的世界游学旅行，去15个国家40多个城市，全程用AI设计、跟踪天气、找活动、确保孩子有事做。没有AI，我们根本达不到这种规划水平。如果用代理模式，只需给它信用卡。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十八条，情绪复盘伙伴。用AI把坏日子或坏时刻变成教训，是AI的一个用例。理清情境非常强大。最简单方法：进入语音模式，尽情倾诉情境、对方说了什么、你什么感受。然后问ChatGPT“从噪音中理出信号，给我一个教训或一线希望，让我转变视角”。它会给你微小转变。为什么强大？困在头脑里很麻烦，说出来与人交流有帮助。它不能替代治疗师，但随时可用，无需预约、免费，而且能调用最佳治疗策略，至少比独自苦想更有方向。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第十九条，内容创作。不是你想的那样。我用它将记忆转化为内容创意，分享给世界。操作方法：让ChatGPT问你所有有意义的故事、时刻和人生转变，你回答后，请它用“观点-故事-教训”框架重新格式化。它会把杂乱的故事和回答重组成结构化的内容，直击人心。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第二十条，合同翻译官。AI在法务领域的终极用途之一是简化复杂合同和财务文件。做法：让助理在咨询律师前，将所有合同上传到ChatGPT，要求用简单英语重写，突出最危险的条款。然后问它“关于这份合同，我应该问哪三个问题？”这样无需法律背景的助理就能变成超级法律助手，准备好所有合同，我直接回复邮件问题答案。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第二十一条，合同创建者。这条很强大，可省下数百美元律师费。用简单英语说明你的情况，包括所在城市、国家、情境，然后要求AI作为法律专家询问所有必要问题，以起草一份世界级专业合同。回答后按回车，它会生成大多数律师都不懂的东西。你还可以用它评估利弊，看是否对自己太不利，找到更公平的方案。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第二十二条，艰难对话演练。用AI作为陪练，演练你明知应该进行但可能回避的艰难对话。对象可能是父母、伴侣、团队成员，甚至去银行申请贷款。我喜欢让ChatGPT扮演特定角色（老板、经理、员工），然后和你角色扮演，你解释观点和感受，它来回回应，让你在真正对话前做好准备。演练后会感觉更舒适。"
+      },
+      {
+        "type": "paragraph",
+        "text": "第二十三条，悼词撰写。写悼词是让你与生活对齐、看清别人如何记住你的绝佳方式。23岁时，我的第一位商业教练鲍勃在第一通电话中让我做这件事，影响远超他教的任何东西：坐下写自己的悼词。操作方法：让ChatGPT基于你的日记、价值观、任何背景和终身提示词，草拟你的悼词。"
+      },
+      {
+        "type": "image",
+        "alt": "Frame Image",
+        "src": "notetool/23 Ways to Use ChatGPT So Well it Feels Like Cheat/frames/frame_4.jpg"
+      }
+    ]
+  },
+  {
+    "title": "第3部分：结束与后续步骤",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "若需获取我与AI对话的内部系统提示，请点击下方描述链接领取。我们刚涵盖大量内容，你只需选择一项——若在生活中开始实践，便会带来显著改变。选定后请在评论区留言告知你的最爱。若想学习在AI时代的三大必备技能，请点击此处。"
+      },
+      {
+        "type": "image",
+        "alt": "Frame Image",
+        "src": "notetool/23 Ways to Use ChatGPT So Well it Feels Like Cheat/frames/frame_171.jpg"
+      }
+    ]
+  }
+];
+const noteTitle: string = null;
+const noteAuthor: string = null;
+const publishedDate: string = null;
+
+
+function renderHeading(level: number, text: string) {
+    if (level === 2) {
+        return <h2 className="mt-8 text-2xl font-semibold text-slate-900">{text}</h2>;
+    }
+
+    if (level === 3) {
+        return <h3 className="mt-6 text-xl font-semibold text-slate-900">{text}</h3>;
+    }
+
+    return <h4 className="mt-4 text-lg font-semibold text-slate-900">{text}</h4>;
+}
+
+export default function Page() {
+    return (
+        <main className="min-h-screen bg-slate-50 px-6 py-12 text-slate-800">
+          <div className="relative">
+            <div className="mx-auto flex max-w-4xl flex-col gap-8">
+              <h1 className="text-4xl font-bold tracking-tight text-slate-950 mb-2">{noteTitle}</h1>
+              <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
+                <img
+                  src={getAvatarUrlByAuthorName(noteAuthor)}
+                  alt={noteAuthor ?? 'author'}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+                <div className="flex items-center gap-2">
+                  <span>作者：{noteAuthor}</span>
+                  <span>·</span>
+                  <time>{publishedDate}</time>
+                </div>
+              </div>
+              {sections.map((section, sectionIndex) => (
+                  <article
+                    id={`section-${sectionIndex}`}
+                    key={`${section.title}-${sectionIndex}`}
+                    className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm"
+                  >
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-950">{section.title}</h1>
+                        <div className="mt-6 space-y-4 leading-8 text-slate-700">
+                            {section.blocks.map((block, blockIndex) => {
+                                if (block.type === 'paragraph') {
+                                    return <p key={blockIndex}>{block.text}</p>;
+                                }
+
+                                if (block.type === 'image') {
+                                    return (
+                                        <img
+                                            key={blockIndex}
+                                            src={`${process.env.NEXT_PUBLIC_CLOUDFLARE_R2_HOST}/${block.src}`}
+                                            alt={block.alt}
+                                            className="w-full rounded-2xl border border-slate-200 object-cover shadow-sm"
+                                        />
+                                    );
+                                }
+
+                                if (block.type === 'code') {
+                                    return (
+                                        <div key={blockIndex} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm">
+                                            {block.language ? (
+                                                <div className="border-b border-slate-800 bg-slate-900 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                                                    {block.language}
+                                                </div>
+                                            ) : null}
+                                            <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-slate-100">
+                                                <code>{block.text}</code>
+                                            </pre>
+                                        </div>
+                                    );
+                                }
+
+                                return <div key={blockIndex}>{renderHeading(block.level, block.text)}</div>;
+                            })}
+                        </div>
+                    </article>
+                  ))}
+                </div>
+
+                <aside className="hidden xl:block fixed right-8 top-28 w-64">
+                  <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm shadow-sm">
+                    <div className="text-xs font-medium text-slate-500 mb-2">目录</div>
+                    <nav className="space-y-2">
+                      {sections.map((s, i) => (
+                        <a
+                          key={i}
+                          href={`#section-${i}`}
+                          className="block text-slate-700 hover:text-slate-900"
+                        >
+                          {s.title}
+                        </a>
+                      ))}
+                    </nav>
+                  </div>
+                </aside>
+              </div>
+        </main>
+    );
+}
