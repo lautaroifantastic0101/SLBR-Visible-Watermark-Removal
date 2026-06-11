@@ -5,7 +5,8 @@ cd D:\codes\video-analyzer\
 .venv\Scripts\activate     
 
 
-$files = Get-ChildItem -Path D:\download_youtube\0610_01\ -Filter "*.mp4"
+$files = Get-ChildItem -Path D:\download_youtube\0610_02\ -Filter "*.mp4"
+
 foreach ($file in $files) {
     $source_path = $file.FullName
     $fn = [System.IO.Path]::GetFileName($source_path)
@@ -13,17 +14,15 @@ foreach ($file in $files) {
     Write-Output $fn
     Write-Output $source_path
     Write-Output $fn_prefix
-    
-    # video-analyzer --output  D:\download_youtube\  --device cuda --keep-frames "$source_path" --log-level INFO
-    video-analyzer   --device cuda --keep-frames "$source_path" --log-level INFO
+    $clean_prefix = $fn_prefix -replace " ", "-"
+    $dest_path = "D:\\ai_note_proj\\video_analysis_result\\" + $clean_prefix
 
-    # video-analyzer --device cuda --keep-frames "$source_path"  
+    Write-Output $dest_path
+    Remove-Item $dest_path -Recurse -Force -ErrorAction SilentlyContinue
 
-    # 输出路径
-    mkdir D:\\download_youtube\\output\\"$fn_prefix"
+    # video-analyzer   --device cuda --keep-frames "$source_path" --log-level INFO
 
     # 代码运行结果移动
-    Move-Item d:\codes\video-analyzer\output D:\\download_youtube\\output\\"$fn_prefix" 
-}
+    Copy-Item d:\codes\video-analyzer\output $dest_path -Recurse -Force
 
-# $source_path = "D:\\download_youtube\\Printing - Roblox Beginners Scripting Tutorial #2 .mp4"
+}
