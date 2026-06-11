@@ -20,7 +20,7 @@ foreach ($file in $files) {
     Write-Output $dest_path
     Remove-Item $dest_path -Recurse -Force -ErrorAction SilentlyContinue
 
-    # video-analyzer   --device cuda --keep-frames "$source_path" --log-level INFO
+    video-analyzer   --device cuda --keep-frames "$source_path" --log-level INFO
 
     # 代码运行结果移动
     Copy-Item d:\codes\video-analyzer\output $dest_path -Recurse -Force
