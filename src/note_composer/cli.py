@@ -241,17 +241,20 @@ def complete_note_composition(chapters, video_analyzer_output):
 
 
 def open_frame_picture(s3_client, frame_index, pic_frame_outputpath):
-    frame_picture_path = os.path.join(pic_frame_outputpath, 'output', 'frames', f"frame_{frame_index}.jpg")
+    """
+    打开frame图片，并上传到R2，返回链接
+    """
+    frame_picture_path = os.path.join(pic_frame_outputpath, 'frames', f"frame_{frame_index}.jpg")
     last_dir_name = os.path.basename(pic_frame_outputpath)
     # outputdir = os.path.dirname(frame_picture_path)
     if os.path.exists(frame_picture_path):
-        print(f"Opening frame picture: {frame_picture_path}")
+        # print(f"Opening frame picture: {frame_picture_path}")
         # os.startfile(frame_picture_path)
         r2_key = f"notetool/{last_dir_name}/frames/frame_{frame_index}.jpg"
         upload_file(s3_client, "my-blog-app", frame_picture_path, r2_key)
         return r2_key
     else:
-        print(f"Frame picture not found: {frame_picture_path}")
+        print(f"【BUG!】Frame picture not found: {frame_picture_path}")
         return None
 
 
@@ -277,6 +280,9 @@ def _strip_markdown_frontmatter(markdown_text):
 
 
 def write_markdown(s3_client, composed_notes, output_file, deepseek_api_key=None, author='Author', locale='en'):
+    """
+    核心处理逻辑：从原始视频信息汇总成为文章内容
+    """
     rendered_notes = []
     for note in composed_notes:
         title = note.get('json_title', 'N/A')
@@ -301,7 +307,7 @@ def write_markdown(s3_client, composed_notes, output_file, deepseek_api_key=None
         rendered_notes.append({'title': translated_title, 'content': translated_content})
 
     fallback_title = os.path.splitext(os.path.basename(output_file))[0]
-    markdown_title = rendered_notes[0]['title'] if rendered_notes else fallback_title
+    markdown_title = fallback_title.split('_')[1]
     markdown_description = _build_markdown_description(
         rendered_notes[0]['content'] if rendered_notes else fallback_title
     )
@@ -319,6 +325,8 @@ def write_markdown(s3_client, composed_notes, output_file, deepseek_api_key=None
             f.write(f"# {rendered_note['title']}\n\n")
             f.write(f"{rendered_note['content']}\n\n")
             f.write("\n---\n\n")
+    
+    return output_file
 
 
 def parse_markdown_sections(markdown_text):
@@ -515,9 +523,9 @@ def write_page_tsx(markdown_fp, output_fp=None):
     """
     输入 markdown_fp 文件；
     """
-    print(f"Converting markdown file {markdown_fp} to page.tsx, output_fp: {output_fp}...")
+    # print(f"Converting markdown file {markdown_fp} to page.tsx, output_fp: {output_fp}...")
     with open(markdown_fp, 'r', encoding='utf-8') as file:
-            markdown_text = file.read()
+        markdown_text = file.read()
 
     sections = parse_markdown_sections(markdown_text)
     note_meta = parse_markdown_meta(markdown_text)
@@ -525,13 +533,17 @@ def write_page_tsx(markdown_fp, output_fp=None):
     page_component = build_page_component(sections, note_meta)
 
     with open(output_fp, 'w', encoding='utf-8') as file:
-            file.write(page_component)
+        file.write(page_component)
 
     return output_fp, len(sections)
 
 
 def generate_chaps(path_to_note, output_chap_txt_fp, deepseek_api_key=None):
-    analysis_json_fp = os.path.join(path_to_note, 'output', 'analysis.json')
+    """
+    Generate chapter text from video analysis results using DeepSeek API.
+    功能：将整段脚本分为N个sections.
+    """
+    analysis_json_fp = os.path.join(path_to_note, 'analysis.json')
     if not os.path.exists(analysis_json_fp):
         print(f"File not found: {analysis_json_fp}")
         return None
@@ -568,6 +580,7 @@ def generate_chaps(path_to_note, output_chap_txt_fp, deepseek_api_key=None):
         "3. Use the format **Section Title** on its own line, then the section content below it.\n"
         "4. Separate each section with exactly one blank line.\n"
         "5. Preserve original text\n\n"
+        "6. 如果内容太短，则可以只输出一个section，但是还是需要preserve original text，标题为空。\n\n"
         f"Transcript:\n{text.strip()}"
     )
 
@@ -653,32 +666,36 @@ def generate_note_title(composed_notes_fp, fallback_title, deepseek_api_key=None
 
 
 def video_analysis_result_to_composed_json(path_to_note, deepseek_api_key=None):
-    print("Welcome to Note Composer!")
-    print("This is a simple CLI tool to help you compose notes.")
-    print("You can create, edit, and save your notes easily.")
-
+    """
+    1. 生成章节文本文件 chaps.txt
+    2. 从 chaps.txt 和 analysis.json 中提取章节信息和视频分析结果，并进行匹配，生成 composed_notes.json
+    """
     chap_path = generate_chaps(path_to_note, 'chaps.txt', deepseek_api_key=deepseek_api_key)
-    print(f"Generated chapters file at: {chap_path}")
+    # print(f"Generated chapters file at: {chap_path}")
 
     chapters_fp = chap_path or os.path.join(path_to_note, 'chaps.txt')
     chapters = load_chaps_txt(chapters_fp)
     video_analyzer_output = load_video_analyzer_output_json(
-        os.path.join(path_to_note, 'output', 'analysis.json')
+        os.path.join(path_to_note, 'analysis.json')
     )
     # print(json.dumps(video_analyzer_output, ensure_ascii=False, indent=2))
     composed_notes = complete_note_composition(chapters, video_analyzer_output)
 
-    print(json.dumps(composed_notes, ensure_ascii=False, indent=2))
+    # print(json.dumps(composed_notes, ensure_ascii=False, indent=2))
 
     with open(os.path.join(path_to_note, 'composed_notes.json'), 'w', encoding='utf-8') as file:
         json.dump(composed_notes, file, ensure_ascii=False, indent=2)
-    # Here you would add the logic for handling user input and managing notes
-    # For example, you could implement commands like 'create', 'edit', 'save', etc.
-    # This is just a placeholder for the actual functionality.
+
+    return os.path.join(path_to_note, 'composed_notes.json')
 
 
 
 def note_composer_to_markdown_main(output_md_file_name, file_path, r2_account_id, r2_access_key_id, r2_secret_access_key, BUCKET_NAME, deepseek_api_key=None, author='Author'):
+    """
+    1. 从 composed_notes.json 读取章节信息和视频分析结果
+    2. 将章节内容和对应的帧图片链接渲染成 markdown 文件
+    3. 将 markdown 文件上传到 R2，并返回链接
+    """
 
     # parser = argparse.ArgumentParser(description="转化文档")
     # args_cli = parser.parse_args()
@@ -710,25 +727,27 @@ def note_composer_to_markdown_main(output_md_file_name, file_path, r2_account_id
     with open(file_path, 'r', encoding='utf-8') as f:
         composed_notes = json.load(f)
 
-    for note in composed_notes:
-        print(f"Title: {note.get('json_title', 'N/A')}")
-        print(f"Content: {note.get('json_content', 'N/A')}")
-        print(f"frames: {note.get('frames', 'N/A')}")    
-        print("-" * 40)
+    # for note in composed_notes:
+    #     print(f"Title: {note.get('json_title', 'N/A')}")
+    #     print(f"Content: {note.get('json_content', 'N/A')}")
+    #     print(f"frames: {note.get('frames', 'N/A')}")    
+    #     print("-" * 40)
 
     
     # current_dir = Path(__file__).resolve().parent
     last_folder = os.path.basename(os.path.dirname(file_path))
-    print(f"Current directory: {last_folder}")
+    # print(f"Current directory: {last_folder}")
 
-    write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), f"zh_{output_md_file_name}"), deepseek_api_key=deepseek_api_key, author=author, locale='zh')
-    write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), f"en_{output_md_file_name}"), deepseek_api_key=deepseek_api_key, author=author, locale='en')
+    zh_filepath = write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), f"zh_{output_md_file_name}"), deepseek_api_key=deepseek_api_key, author=author, locale='zh')
+    en_filepath = write_markdown(s3_client, composed_notes, os.path.join(os.path.dirname(file_path), f"en_{output_md_file_name}"), deepseek_api_key=deepseek_api_key, author=author, locale='en')
+    return [zh_filepath, en_filepath]
 
 
 
 def note_markdown_to_pagetsx_main(markdown_fp, output_fp=None):
     output_fp, section_count = write_page_tsx(markdown_fp, output_fp)
-    print(f'Generated {output_fp} from {markdown_fp} with {section_count} sections.')
+    # print(f'[note_markdown_to_pagetsx_main]Generated {output_fp} from {markdown_fp} with {section_count} sections.')
+    return output_fp
 
 
 def parse_args():
